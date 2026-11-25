@@ -439,7 +439,7 @@ td.r, th.r { text-align: right; }
 
         <section class="cartao">
           <h2>Vídeos e cartazes</h2>
-          <p class="nota">Vídeos MP4 ou WebM e imagens (PNG, JPG, WebP). Passam na TV em sequência, intercalados com os programas de saúde. Limite de 25 MB por arquivo; a ordem segue o nome do arquivo.</p>
+          <p class="nota">Vídeos MP4 ou WebM e imagens (PNG, JPG, WebP). Passam na TV em sequência, intercalados com os programas de saúde. Limite de 50 MB por arquivo; a ordem segue o nome do arquivo.</p>
           <div class="arquivo">
             <label for="m-arquivo">Adicionar arquivos</label>
             <input type="file" id="m-arquivo" accept="video/mp4,video/webm,image/png,image/jpeg,image/webp,image/gif" multiple>
@@ -514,7 +514,7 @@ td.r, th.r { text-align: right; }
   const LS_KEY = 'painel-senhas-github';
   const API = 'https://api.github.com';
   const MIME = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
-  const LIM_MIDIA = 25 * 1024 * 1024;
+  const LIM_MIDIA = 50 * 1024 * 1024;
   let repo = '', token = '', conectado = false;
   let ultimaLeitura = 0, avisoRede = false, loopsOn = false, ultimoErro = '';
   const etags = new Map();
@@ -988,9 +988,9 @@ td.r, th.r { text-align: right; }
     for (const f of files) {
       const nome = f.name.replace(/[\\/:*?"<>|#%]/g, '_');
       if (!EXT_VID.test(nome) && !EXT_IMG.test(nome)) { setMsg(msg, `${nome}: formato não aceito. Use MP4, WebM, PNG, JPG ou WebP.`, 'erro'); continue; }
-      if (f.size > LIM_MIDIA) { setMsg(msg, `${nome} tem mais de 25 MB. Comprima o vídeo e tente de novo.`, 'erro'); continue; }
+      if (f.size > LIM_MIDIA) { setMsg(msg, `${nome} tem mais de 50 MB. Comprima o vídeo e tente de novo.`, 'erro'); continue; }
       if (midia.some(m => m.nome === nome)) { setMsg(msg, `${nome} já foi enviado.`, ''); continue; }
-      setMsg(msg, `Enviando ${nome}…`, '');
+      setMsg(msg, `Enviando ${nome} (${(f.size / 1048576).toFixed(0)} MB)… arquivos grandes podem levar alguns minutos; não feche a página.`, '');
       try {
         await putBody('midia/' + nome, { message: 'adiciona mídia', content: await arquivoB64(f) });
         setMsg(msg, `${nome} adicionado. A TV passa a exibir em instantes.`, 'ok');

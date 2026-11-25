@@ -16,7 +16,7 @@ Este repositório (público) guarda só o código. A fila, as configurações e 
 No repositório de dados o painel cria:
 
 - `dias/` — um arquivo por dia com as senhas (apagados após 60 dias)
-- `midia/` — vídeos (MP4/WebM) e cartazes (PNG/JPG/WebP), até 25 MB cada
+- `midia/` — vídeos (MP4/WebM) e cartazes (PNG/JPG/WebP), até 50 MB cada
 - `config.json` — nome da unidade, frase, voz e programas de saúde
 
 ## Configuração (uma vez)
