@@ -139,7 +139,9 @@ textarea { resize: vertical; width: 100%; }
 .prog:first-child { border-top: 0; }
 .prog input { grid-column: 1; font-weight: 700; min-width: 0; }
 .prog textarea { grid-column: 1; }
-.prog-acoes { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 4px; }
+.prog .p-linha { grid-column: 1; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px; }
+.prog .p-linha select, .prog .p-linha input { grid-column: auto; min-width: 0; font-weight: 400; }
+.prog-acoes { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; gap: 4px; }
 .arquivo { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
 
 /* ---------- painel TV (branco) ---------- */
@@ -160,6 +162,12 @@ textarea { resize: vertical; width: 100%; }
 .slide h2 { font-size: clamp(2.2rem, 4.2vw, 4.6rem); line-height: 1.05; font-weight: 700; color: var(--vivo-escuro); }
 .slide p { font-size: clamp(1.2rem, 2vw, 2.3rem); line-height: 1.35; color: var(--tv-muted); margin: 0; max-width: 34ch; }
 .slide.vazio p { max-width: none; }
+.slide.prog-slide { justify-content: space-between; padding: 5vh 4.5vw 7vh; }
+.slide .s-corpo { display: flex; flex-direction: column; gap: 2.2vh; flex: 1; justify-content: center; }
+.slide .s-acesso { display: flex; flex-direction: column; gap: .4vh; background: #ffffff; border-left: 6px solid var(--tv-accent); border-radius: 0 10px 10px 0; padding: 1.8vh 1.6vw; align-self: stretch; }
+.slide .s-acesso small { font-size: clamp(.75rem, .95vw, 1.05rem); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--tv-muted); }
+.slide .s-acesso b { font-size: clamp(1.1rem, 1.75vw, 2rem); color: var(--tv-ink); font-weight: 600; overflow-wrap: anywhere; }
+.slide .s-assin { font-size: clamp(.8rem, 1vw, 1.1rem); color: var(--tv-accent); font-weight: 700; letter-spacing: .04em; }
 .slide-pontos { display: flex; gap: 8px; position: absolute; bottom: 2vh; left: 4.5vw; }
 .slide-pontos i { width: 8px; height: 8px; border-radius: 50%; background: var(--tv-line); display: block; }
 .slide-pontos i.on { background: var(--tv-accent); }
@@ -444,6 +452,7 @@ td.r, th.r { text-align: right; }
       <section class="cartao">
         <h2>Programas de saúde</h2>
         <p class="nota">Cada programa vira uma tela na TV por 14 segundos. Deixe só os que a sua unidade oferece.</p>
+        <div class="acoes"><button class="btn" id="b-prog-guia" type="button">Carregar programas do Guia Bem-estar</button></div>
         <div id="prog-lista"></div>
         <div class="acoes">
           <button class="btn" id="b-prog-add" type="button">Adicionar programa</button>
@@ -886,17 +895,41 @@ td.r, th.r { text-align: right; }
   });
 
   // editor de programas
+  const PILARES = ['Programas de saúde', 'Corpo', 'Mente', 'Família', 'Ambiente', 'Campanha'];
+  // Conteúdo resumido do Guia dos Produtos de Bem-estar (março/2026), para Eco Berrini e Chucri Zaidan.
+  const GUIA = [
+    { pilar: 'Campanha', titulo: 'Campanha de Vacinação', texto: 'Renove sua proteção contra a Influenza. A campanha atende colaboradores e dependentes nos prédios, em farmácias ou via drive-thru.', acesso: 'Acompanhe as datas na Intranet e no Workvivo' },
+    { pilar: 'Corpo', titulo: 'Hospital Púrpura', texto: 'Atendimento médico e de enfermagem digital, 24 horas por dia, 7 dias por semana. Gratuito e sem coparticipação.', acesso: 'WhatsApp (11) 93750-9556' },
+    { pilar: 'Corpo', titulo: 'Clínica Einstein', texto: 'Médico da Família, ambulatório e coleta de exames com a equipe do Hospital Israelita Albert Einstein, presencial ou por teleconsulta.', acesso: 'Espaço OCA · (11) 3430-5050 · das 8h às 18h' },
+    { pilar: 'Ambiente', titulo: 'Espaço OCA', texto: 'Acupuntura, fisioterapia, osteopatia, massagem, espaço de beleza e Clínica Einstein, no prédio anexo ao Eco Berrini.', acesso: 'Prédio anexo ao Eco Berrini' },
+    { pilar: 'Corpo', titulo: 'Fisioterapia e Telereabilitação', texto: 'Tratamento para dores, alterações posturais e lesões, presencial no Eco Berrini e Chucri Zaidan ou por vídeo.', acesso: 'App Einstein Conecta ou (11) 2151-1100 · com encaminhamento médico' },
+    { pilar: 'Corpo', titulo: 'Nutricionistas', texto: 'Atendimento online e individual, com foco em reeducação alimentar e qualidade de vida.', acesso: 'vivo.nutri@energienutricao.com.br' },
+    { pilar: 'Corpo', titulo: 'Educador Físico', texto: 'Orientação sobre hábitos e treinos, presencial no Eco Berrini e Chucri Zaidan e online para as demais localidades.', acesso: 'Agendamento pelo portal Agilitty' },
+    { pilar: 'Corpo', titulo: 'Quick-massage', texto: 'Alivia a tensão muscular, reduz a ansiedade e melhora a disposição. Sem custo para o colaborador.', acesso: 'Agendamento pelo portal Agilitty' },
+    { pilar: 'Família', titulo: 'Vivo Mais Família', texto: 'Apoio na gestação e na adoção: acompanhamento de enfermagem, cursos para pais e visita domiciliar após a chegada do bebê.', acesso: 'vivomaisfamilia.br@telefonica.com' },
+    { pilar: 'Família', titulo: 'Conexão Materna', texto: 'Espaço preparado para as mães que amamentam armazenarem o leite materno com conforto.', acesso: 'Espaço OCA (1º andar) e Chucri Zaidan' },
+    { pilar: 'Mente', titulo: 'PlenaMente by Zenklub', texto: 'Psicoterapia online com psicólogos, psicanalistas e terapeutas, para colaboradores e dependentes.', acesso: 'App Zenklub · códigos de ativação no Guia de Bem-estar' },
+    { pilar: 'Mente', titulo: 'SOS Saúde Mental', texto: 'Acolhimento psicológico imediato para momentos difíceis, com sigilo absoluto.', acesso: '0800 740 4708 · 24 horas' },
+    { pilar: 'Mente', titulo: 'Orientação Certa', texto: 'Assessorias financeira, jurídica, psicopedagógica e vocacional com profissionais especializados.', acesso: '0800 740 4708 · WhatsApp (11) 95677-4253' },
+    { pilar: 'Mente', titulo: 'ATMA', texto: 'Mais de 1.300 meditações guiadas para dormir melhor, diminuir o estresse e lidar com desafios.', acesso: 'Baixe o app e cadastre sua Linha Funcional' },
+  ];
   function lerProgEditor() {
     return [...document.querySelectorAll('#prog-lista .prog')].map(r => ({
       titulo: r.querySelector('.p-tit').value.trim(),
       texto: r.querySelector('.p-txt').value.trim(),
+      pilar: r.querySelector('.p-pil').value,
+      acesso: r.querySelector('.p-ace').value.trim(),
     }));
   }
   function renderProgEditor(lista = programas) {
     const box = $('#prog-lista');
     box.innerHTML = lista.length ? lista.map((p, i) => `<div class="prog">
         <input type="text" class="p-tit" id="p-tit-${i}" value="${esc(p.titulo)}" maxlength="60" placeholder="Título (ex.: Novembro Azul)" aria-label="Título do programa ${i + 1}">
-        <textarea class="p-txt" id="p-txt-${i}" rows="2" maxlength="220" placeholder="Texto curto que aparece na TV" aria-label="Texto do programa ${i + 1}">${esc(p.texto)}</textarea>
+        <textarea class="p-txt" id="p-txt-${i}" rows="3" maxlength="220" placeholder="Texto curto que aparece na TV" aria-label="Texto do programa ${i + 1}">${esc(p.texto)}</textarea>
+        <div class="p-linha">
+          <select class="p-pil" aria-label="Pilar do programa ${i + 1}">${PILARES.map(x => `<option ${x === (p.pilar || 'Programas de saúde') ? 'selected' : ''}>${x}</option>`).join('')}</select>
+          <input type="text" class="p-ace" value="${esc(p.acesso || '')}" maxlength="90" placeholder="Como acessar (telefone, app, local)" aria-label="Como acessar o programa ${i + 1}">
+        </div>
         <div class="prog-acoes">
           <button class="btn sm fant" type="button" data-a="sobe" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Mover para cima">Subir</button>
           <button class="btn sm fant" type="button" data-a="tira" data-i="${i}">Remover</button>
@@ -913,9 +946,20 @@ td.r, th.r { text-align: right; }
     setMsg($('#prog-msg'), 'Alterações não salvas.', '');
   });
   $('#b-prog-add').addEventListener('click', () => {
-    const lista = lerProgEditor(); lista.push({ titulo: '', texto: '' });
+    const lista = lerProgEditor(); lista.push({ titulo: '', texto: '', pilar: 'Programas de saúde', acesso: '' });
     progSujo = true; renderProgEditor(lista);
     const ult = document.querySelectorAll('#prog-lista .p-tit'); ult[ult.length - 1]?.focus();
+  });
+  $('#b-prog-guia').addEventListener('click', ev => {
+    const b = ev.currentTarget;
+    if (lerProgEditor().some(p => p.titulo) && !b.dataset.conf) {
+      b.dataset.conf = '1'; b.textContent = 'Substituir a lista atual? Clique de novo';
+      setTimeout(() => { delete b.dataset.conf; b.textContent = 'Carregar programas do Guia Bem-estar'; }, 4000);
+      return;
+    }
+    delete b.dataset.conf; b.textContent = 'Carregar programas do Guia Bem-estar';
+    progSujo = true; renderProgEditor(GUIA.map(p => ({ ...p })));
+    setMsg($('#prog-msg'), `${GUIA.length} programas carregados. Revise, remova os que não quiser e clique em “Salvar programas”.`, '');
   });
   $('#b-prog-salvar').addEventListener('click', async () => {
     const msg = $('#prog-msg');
@@ -1274,7 +1318,8 @@ td.r, th.r { text-align: right; }
     } else {
       const slides = lista.filter(x => x.tipo === 'programa');
       const pos = programas.findIndex(p => p.titulo === it.titulo);
-      box.innerHTML = `<article class="slide"><span class="slide-tag">Programas de saúde</span><h2>${esc(it.titulo)}</h2>${it.texto ? `<p>${esc(it.texto)}</p>` : ''}</article>
+      box.innerHTML = `<article class="slide prog-slide"><div class="s-corpo"><span class="slide-tag">${esc(it.pilar && it.pilar !== 'Programas de saúde' ? it.pilar + ' · Vivo Bem-estar' : 'Programas de saúde')}</span><h2>${esc(it.titulo)}</h2>${it.texto ? `<p>${esc(it.texto)}</p>` : ''}</div>
+        ${it.acesso ? `<div class="s-acesso"><small>Como acessar</small><b>${esc(it.acesso)}</b></div>` : ''}<span class="s-assin">Vivo de bem comigo</span></article>
         ${slides.length > 1 ? `<div class="slide-pontos" aria-hidden="true">${programas.map((_, i) => `<i class="${i === pos ? 'on' : ''}"></i>`).join('')}</div>` : ''}`;
       trocarUrl(null);
       seguir(14000);
