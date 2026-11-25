@@ -1,6 +1,6 @@
 # Painel de Senhas
 
-Painel de senhas da sala de vacina: recepção, TV com chamada por voz, relatório de tempo de espera e configurações.
+Painel de senhas da sala de vacina: recepção, TV com chamada por voz, relatório de tempo de espera e configurações. Funciona no celular, no computador e na TV.
 
 ## Links
 
@@ -11,17 +11,20 @@ Painel de senhas da sala de vacina: recepção, TV com chamada por voz, relatór
 
 ## Como funciona
 
-Este repositório guarda só o código. A fila, as configurações e os vídeos ficam numa **pasta de rede compartilhada** que a recepção e a TV escolhem ao abrir o painel. Nenhum nome de paciente vai para o GitHub.
+Este repositório (público) guarda só o código. A fila, as configurações e os vídeos ficam num **repositório privado de dados**, lido e gravado pelo próprio painel pela API do GitHub. Nunca coloque os dados num repositório público: eles têm nomes de pessoas. O painel recusa repositórios públicos.
 
-Dentro da pasta o painel cria:
+No repositório de dados o painel cria:
 
 - `dias/` — um arquivo por dia com as senhas (apagados após 60 dias)
-- `midia/` — vídeos (MP4/WebM) e cartazes (PNG/JPG/WebP) exibidos na TV, em ordem de nome
+- `midia/` — vídeos (MP4/WebM) e cartazes (PNG/JPG/WebP), até 25 MB cada
 - `config.json` — nome da unidade, frase, voz e programas de saúde
 
-## Uso
+## Configuração (uma vez)
 
-1. Abra o link no **Microsoft Edge** ou no **Google Chrome**.
-2. Recepção: clique em **Escolher pasta** e selecione a pasta de rede.
-3. TV: abra o link `#painel`, clique em **Ativar painel** e escolha a mesma pasta.
-4. A cada abertura do navegador, confirme o acesso clicando em **Reconectar** e depois em "Permitir".
+1. Crie um repositório **privado** (ex.: `painel-senhas-dados`) marcando **Add a README file**.
+2. Crie um token em GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens**:
+   - Repository access: **Only select repositories** → só o repositório de dados.
+   - Permissions → Repository permissions → **Contents: Read and write**.
+3. Em cada aparelho (recepção, TV), abra o link, informe `usuario/painel-senhas-dados` e o token e clique em **Conectar**. Fica salvo no navegador.
+
+A TV: abra o link `#painel` e toque em **Ativar painel** para liberar som e voz.

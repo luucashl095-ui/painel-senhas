@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Painel de Senhas</title>
 <style>
-/* Versão offline: os dados ficam numa pasta de rede compartilhada entre a recepção e a TV */
+/* Os dados ficam num repositório privado do GitHub compartilhado entre recepção e TV */
 :root {
   color-scheme: light;
   --bg: #eef3f4;
@@ -70,6 +70,8 @@ nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-
 .conexao { background: var(--surface); border-bottom: 1px solid var(--line); }
 .conexao-in { max-width: 1280px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .conexao-in > div { flex: 1 1 320px; }
+.conexao-in > .cx-campos { display: grid; gap: 6px; flex: 2 1 380px; }
+.cx-campos input { width: 100%; }
 .conexao b { font-family: var(--f-disp); font-size: 1.25rem; font-weight: 600; }
 .conexao p { margin: 2px 0 0; color: var(--muted); }
 
@@ -87,7 +89,7 @@ nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-
   background: var(--accent); color: var(--accent-ink); border: 0; border-radius: var(--r); display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .btn.grande small { font-family: var(--f-text); font-size: .9rem; font-weight: 400; opacity: .9; }
 label { font-weight: 700; font-size: .9rem; color: var(--muted); }
-input[type="text"], input[type="date"], textarea, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 1rem; }
+input[type="text"], input[type="password"], input[type="date"], textarea, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 1rem; }
 textarea { resize: vertical; width: 100%; }
 .dica { margin: 0; min-height: 1.4em; font-size: .92rem; color: var(--muted); }
 .dica.ok { color: var(--ok); font-weight: 700; }
@@ -242,7 +244,7 @@ td.r, th.r { text-align: right; }
   <header class="topo" id="topo">
     <div class="topo-in">
       <div class="marca"><i aria-hidden="true"></i><h1 id="topo-unidade">Sala de Vacina</h1><span>Painel de senhas</span></div>
-      <div class="pasta-st" id="pasta-st" title="Pasta compartilhada"><i aria-hidden="true"></i><span>Sem pasta</span></div>
+      <div class="pasta-st" id="pasta-st" title="Conexão com o GitHub"><i aria-hidden="true"></i><span>Sem conexão</span></div>
       <nav aria-label="Telas">
         <a href="#recepcao" data-v="recepcao">Recepção</a>
         <a href="#painel" data-v="painel">Painel TV</a>
@@ -253,14 +255,19 @@ td.r, th.r { text-align: right; }
   </header>
 
   <section class="conexao" id="conexao" hidden>
-    <div class="conexao-in">
+    <form class="conexao-in" id="f-conectar" autocomplete="off">
       <div>
-        <b id="cx-tit">Conecte à pasta compartilhada</b>
-        <p id="cx-txt"></p>
+        <b id="cx-tit">Conecte ao GitHub</b>
+        <p id="cx-txt">Informe o repositório privado onde os dados ficam e o token de acesso. Isso é feito uma vez em cada aparelho.</p>
       </div>
-      <button class="btn prim" id="b-conectar" type="button">Escolher pasta</button>
-      <button class="btn" id="b-outra" type="button" hidden>Escolher outra pasta</button>
-    </div>
+      <div class="cx-campos">
+        <label for="cx-repo">Repositório de dados</label>
+        <input type="text" id="cx-repo" placeholder="usuario/painel-senhas-dados" autocapitalize="none" autocorrect="off" spellcheck="false">
+        <label for="cx-token">Token de acesso</label>
+        <input type="password" id="cx-token" placeholder="github_pat_..." autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <button class="btn prim" id="b-conectar" type="submit">Conectar</button>
+    </form>
   </section>
   <div id="aviso" class="aviso" role="status" hidden></div>
 
@@ -296,7 +303,7 @@ td.r, th.r { text-align: right; }
       <section class="col">
         <div class="cartao">
           <h2>Fila de espera <span class="cont" id="cont-fila"></span></h2>
-          <ol id="fila" class="lista"><li class="vazio">Conecte à pasta para ver a fila.</li></ol>
+          <ol id="fila" class="lista"><li class="vazio">Conecte ao GitHub para ver a fila.</li></ol>
         </div>
         <div class="cartao">
           <h2>Chamados hoje <span class="cont" id="cont-cham"></span></h2>
@@ -337,7 +344,7 @@ td.r, th.r { text-align: right; }
     </div>
     <div class="tv-ativar" id="tv-ativar">
       <button id="b-ativar" type="button">Ativar painel</button>
-      <p id="tv-ativar-txt">Clique uma vez neste computador para liberar o som e a voz das chamadas.</p>
+      <p id="tv-ativar-txt">Toque uma vez neste aparelho para liberar o som e a voz das chamadas.</p>
       <a href="#recepcao">Voltar para a recepção</a>
     </div>
     <div class="tv-ctrl">
@@ -388,10 +395,10 @@ td.r, th.r { text-align: right; }
     <div class="conf">
       <div class="col">
         <section class="cartao">
-          <h2>Pasta compartilhada</h2>
-          <p class="nota">Pasta atual: <b id="cfg-pasta">nenhuma</b></p>
-          <p class="nota">Dentro dela ficam <code>dias</code> (um arquivo por dia), <code>midia</code> (vídeos e cartazes) e <code>config.json</code>. A recepção e a TV precisam apontar para a mesma pasta.</p>
-          <div class="acoes"><button class="btn" id="b-trocar" type="button">Trocar pasta</button></div>
+          <h2>Conexão com o GitHub</h2>
+          <p class="nota">Repositório de dados: <b id="cfg-pasta">nenhum</b></p>
+          <p class="nota">Nele ficam <code>dias</code> (um arquivo por dia), <code>midia</code> (vídeos e cartazes) e <code>config.json</code>. Todos os aparelhos precisam usar o mesmo repositório.</p>
+          <div class="acoes"><button class="btn" id="b-trocar" type="button">Trocar conexão</button></div>
         </section>
 
         <section class="cartao" id="cfg-tv">
@@ -424,7 +431,7 @@ td.r, th.r { text-align: right; }
 
         <section class="cartao">
           <h2>Vídeos e cartazes</h2>
-          <p class="nota">Vídeos MP4 ou WebM e imagens (PNG, JPG, WebP). Passam na TV em sequência, intercalados com os programas de saúde. Você também pode copiar os arquivos direto para a pasta <code>midia</code>; a ordem segue o nome do arquivo.</p>
+          <p class="nota">Vídeos MP4 ou WebM e imagens (PNG, JPG, WebP). Passam na TV em sequência, intercalados com os programas de saúde. Limite de 25 MB por arquivo; a ordem segue o nome do arquivo.</p>
           <div class="arquivo">
             <label for="m-arquivo">Adicionar arquivos</label>
             <input type="file" id="m-arquivo" accept="video/mp4,video/webm,image/png,image/jpeg,image/webp,image/gif" multiple>
@@ -494,136 +501,180 @@ td.r, th.r { text-align: right; }
   function setMsg(el, txt, cls) { el.textContent = txt; el.className = 'dica' + (cls ? ' ' + cls : ''); }
   function aviso(txt) { const el = $('#aviso'); el.textContent = txt; el.hidden = !txt; }
 
-  /* ---------- pasta compartilhada ---------- */
-  const SUPORTA = 'showDirectoryPicker' in window;
-  let raiz = null, dirDias = null, dirMidia = null, conectado = false, handleSalvo = null;
-  let ultimaLeitura = 0, avisoRede = false, loopsOn = false;
+  /* ---------- GitHub como armazenamento ---------- */
+  const LS_KEY = 'painel-senhas-github';
+  const API = 'https://api.github.com';
+  const MIME = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+  const LIM_MIDIA = 25 * 1024 * 1024;
+  let repo = '', token = '', conectado = false;
+  let ultimaLeitura = 0, avisoRede = false, loopsOn = false, ultimoErro = '';
+  const etags = new Map();
+  const cacheMidia = new Map();
 
-  function abrirIdb() {
+  function lerCred() { try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { return null; } }
+  function salvarCred(c) { try { if (c) localStorage.setItem(LS_KEY, JSON.stringify(c)); else localStorage.removeItem(LS_KEY); } catch (e) { /* sem armazenamento */ } }
+  function b64dec(b64) {
+    const bin = atob(String(b64).replace(/\s/g, ''));
+    return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+  }
+  function b64enc(txt) {
+    const u = new TextEncoder().encode(txt);
+    let s = '';
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+  function arquivoB64(f) {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('painel-senhas', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('kv');
-      r.onsuccess = () => res(r.result);
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1] || '');
       r.onerror = () => rej(r.error);
+      r.readAsDataURL(f);
     });
   }
-  async function idbGet(k) {
-    try {
-      const db = await abrirIdb();
-      return await new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
-    } catch (e) { return null; }
-  }
-  async function idbSet(k, v) {
-    try {
-      const db = await abrirIdb();
-      await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
-    } catch (e) { /* sem memória da pasta: pede de novo na próxima abertura */ }
-  }
+  function mimeDe(nome) { return MIME[(nome.split('.').pop() || '').toLowerCase()] || 'application/octet-stream'; }
 
-  async function lerTexto(dir, nome) {
-    for (let i = 0; i < 3; i++) {
-      try {
-        const fh = await dir.getFileHandle(nome);
-        const f = await fh.getFile();
-        return await f.text();
-      } catch (e) {
-        if (e && e.name === 'NotFoundError') return null;
-        if (i === 2) throw e;
-        await sleep(120);
-      }
-    }
+  function ghErr(msg, status) { const e = new Error(msg); e.name = 'GhError'; e.status = status; return e; }
+  async function ghErrResp(r) {
+    let m = '';
+    try { m = (await r.json()).message || ''; } catch (_) { /* sem corpo */ }
+    return ghErr(m || ('HTTP ' + r.status), r.status);
   }
-  async function escreverTexto(dir, nome, conteudo) {
-    const fh = await dir.getFileHandle(nome, { create: true });
-    const w = await fh.createWritable();
-    try { await w.write(conteudo); await w.close(); }
-    catch (e) { try { await w.abort(); } catch (_) { /* nada */ } throw e; }
-  }
-  async function lerJSON(dir, nome) { const t = await lerTexto(dir, nome); return t ? JSON.parse(t) : null; }
   function erroTxt(e) {
     if (!e) return 'erro';
-    if (e.name === 'NotAllowedError' || e.name === 'SecurityError') return 'sem permissão na pasta';
-    if (e.name === 'NoModificationAllowedError' || e.name === 'InvalidModificationError') return 'arquivo em uso por outro computador';
-    if (e.name === 'QuotaExceededError') return 'disco cheio';
-    if (e.name === 'NotFoundError') return 'pasta ou arquivo não encontrado';
-    return e.message || e.name || 'erro';
+    if (e.status === 0) return 'sem internet';
+    if (e.status === 401) return 'token inválido ou expirado';
+    if (e.status === 403) return /rate limit/i.test(e.message) ? 'limite de acessos do GitHub, aguarde um pouco' : 'sem permissão no repositório';
+    if (e.status === 404) return 'repositório ou arquivo não encontrado';
+    if (e.status === 409 || e.status === 422) return 'conflito de gravação';
+    return e.message || 'erro';
+  }
+
+  function urlConteudo(path) { return `${API}/repos/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}`; }
+  async function req(metodo, url, opts = {}) {
+    const h = Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' }, opts.headers || {});
+    try { return await fetch(url, { method: metodo, headers: h, body: opts.body, cache: 'no-store' }); }
+    catch (e) { throw ghErr('sem internet', 0); }
+  }
+
+  // Lê um arquivo. Usa ETag: se nada mudou, o GitHub responde 304 (não conta no limite de acessos).
+  async function ghGet(path) {
+    const c = etags.get(path);
+    const r = await req('GET', urlConteudo(path), { headers: c && c.etag ? { 'If-None-Match': c.etag } : {} });
+    if (r.status === 304 && c) return Object.assign({ mudou: false }, c.d);
+    if (r.status === 404) { etags.delete(path); return { mudou: true, existe: false }; }
+    if (!r.ok) throw await ghErrResp(r);
+    const j = await r.json();
+    const d = { existe: true, sha: j.sha, texto: j.encoding === 'base64' && j.content ? b64dec(j.content) : '' };
+    etags.set(path, { etag: r.headers.get('ETag'), d });
+    return Object.assign({ mudou: true }, d);
+  }
+  async function ghList(path) {
+    const c = etags.get(path);
+    const r = await req('GET', urlConteudo(path), { headers: c && c.etag ? { 'If-None-Match': c.etag } : {} });
+    if (r.status === 304 && c) return c.d;
+    if (r.status === 404) { etags.delete(path); return []; }
+    if (!r.ok) throw await ghErrResp(r);
+    const j = await r.json();
+    const d = Array.isArray(j) ? j : [];
+    etags.set(path, { etag: r.headers.get('ETag'), d });
+    return d;
+  }
+  function invalidar(path) { etags.delete(path); etags.delete(path.split('/')[0]); }
+  async function putBody(path, body) {
+    const r = await req('PUT', urlConteudo(path), { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } });
+    invalidar(path);
+    if (r.status === 409 || r.status === 422) throw ghErr('conflito de gravação', r.status);
+    if (!r.ok) throw await ghErrResp(r);
+    return (await r.json()).content.sha;
+  }
+  function ghPut(path, texto, sha, msg) {
+    const body = { message: msg || 'atualiza dados', content: b64enc(texto) };
+    if (sha) body.sha = sha;
+    return putBody(path, body);
+  }
+  async function ghDel(path, sha) {
+    const r = await req('DELETE', urlConteudo(path), { body: JSON.stringify({ message: 'remove arquivo', sha }), headers: { 'Content-Type': 'application/json' } });
+    invalidar(path);
+    if (!r.ok && r.status !== 404) throw await ghErrResp(r);
+  }
+  async function lerJSONgh(path) { const g = await ghGet(path); return g.existe && g.texto ? JSON.parse(g.texto) : null; }
+
+  async function urlMidia(m) {
+    const k = m.nome + ':' + m.sha;
+    if (cacheMidia.has(k)) return cacheMidia.get(k);
+    const r = await req('GET', urlConteudo('midia/' + m.nome), { headers: { Accept: 'application/vnd.github.raw+json' } });
+    if (!r.ok) throw await ghErrResp(r);
+    const u = URL.createObjectURL(new Blob([await r.blob()], { type: mimeDe(m.nome) }));
+    cacheMidia.set(k, u);
+    return u;
   }
 
   function renderConexao() {
     const st = $('#pasta-st');
     st.className = 'pasta-st' + (conectado ? ' ok' : '');
-    st.querySelector('span').textContent = conectado ? 'Pasta: ' + raiz.name : 'Sem pasta';
-    $('#cfg-pasta').textContent = conectado ? raiz.name : 'nenhuma';
+    st.querySelector('span').textContent = conectado ? 'GitHub: ' + repo : 'Sem conexão';
+    $('#cfg-pasta').textContent = conectado ? repo : 'nenhum';
     $('#conexao').hidden = conectado || vista === 'painel';
-    const tit = $('#cx-tit'), txt = $('#cx-txt'), b = $('#b-conectar'), b2 = $('#b-outra');
-    if (!SUPORTA) {
-      tit.textContent = 'Este navegador não acessa pastas';
-      txt.textContent = 'Abra este arquivo no Microsoft Edge ou no Google Chrome.';
-      b.hidden = true; b2.hidden = true;
-      $('#tv-ativar-txt').textContent = 'Abra este arquivo no Microsoft Edge ou no Google Chrome.';
-      return;
-    }
-    if (handleSalvo) {
-      tit.textContent = `Reconectar à pasta “${handleSalvo.name}”`;
-      txt.textContent = 'O navegador confirma o acesso à pasta a cada abertura. Clique em Reconectar e escolha “Permitir”.';
-      b.textContent = 'Reconectar'; b2.hidden = false;
-    } else {
-      tit.textContent = 'Conecte à pasta compartilhada';
-      txt.textContent = 'Escolha a pasta de rede que a recepção e a TV usam juntas. A fila, as configurações e os vídeos ficam nela.';
-      b.textContent = 'Escolher pasta'; b2.hidden = true;
-    }
     $('#tv-ativar-txt').textContent = conectado
-      ? 'Clique uma vez neste computador para liberar o som e a voz das chamadas.'
-      : handleSalvo ? `Clique para liberar o som e reconectar à pasta “${handleSalvo.name}”.`
-      : 'Clique para liberar o som e escolher a pasta compartilhada (a mesma da recepção).';
+      ? 'Toque uma vez neste aparelho para liberar o som e a voz das chamadas.'
+      : 'Este aparelho ainda não está conectado ao GitHub. Volte para a recepção, conecte e abra o painel de novo.';
   }
 
-  // Precisa ser chamada a partir de um clique.
-  async function conectar(nova) {
-    if (!SUPORTA) return false;
+  async function conectar(r, t) {
+    const nomeRepo = r.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+    if (!/^[\w.-]+\/[\w.-]+$/.test(nomeRepo)) { aviso('Escreva o repositório no formato usuario/nome.'); return false; }
+    if (!t.trim()) { aviso('Cole o token de acesso.'); return false; }
+    repo = nomeRepo; token = t.trim();
     try {
-      let h = nova ? null : handleSalvo;
-      if (h) {
-        let p = await h.queryPermission({ mode: 'readwrite' });
-        if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' });
-        if (p !== 'granted') { aviso('Sem permissão para a pasta. Clique em Reconectar e escolha “Permitir”.'); return false; }
-      } else {
-        h = await window.showDirectoryPicker({ id: 'painel-senhas', mode: 'readwrite' });
-      }
-      await usarPasta(h);
-      handleSalvo = h;
-      await idbSet('pasta', h);
-      renderConexao();
-      return true;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return false;
-      aviso('Não foi possível abrir a pasta (' + erroTxt(e) + ').');
-      return false;
-    }
+      const rr = await req('GET', `${API}/repos/${repo}`);
+      if (!rr.ok) throw await ghErrResp(rr);
+      const j = await rr.json();
+      if (!j.private) { aviso('Esse repositório é público. Use um repositório PRIVADO, senão os nomes ficam abertos para qualquer pessoa.'); return false; }
+      if (j.permissions && j.permissions.push === false) { aviso('O token não tem permissão de escrita (Contents: Read and write) nesse repositório.'); return false; }
+    } catch (e) { aviso('Não foi possível conectar (' + erroTxt(e) + ').'); return false; }
+    salvarCred({ repo, token });
+    await usar();
+    return true;
   }
 
-  async function usarPasta(h) {
-    const dd = await h.getDirectoryHandle('dias', { create: true });
-    const dm = await h.getDirectoryHandle('midia', { create: true });
-    raiz = h; dirDias = dd; dirMidia = dm; conectado = true;
+  async function usar() {
+    conectado = true;
+    etags.clear();
     ultimoTxtDia = undefined; ultimoTxtCfg = undefined; chaveMidia = null; relDados = null;
-    ultimaLeitura = Date.now();
+    ultimaLeitura = Date.now(); ultimoErro = '';
     aviso(''); renderConexao();
     await Promise.allSettled([lerDia(), lerConfig(), listarMidia()]);
     if (!loopsOn) {
       loopsOn = true;
       loopDia();
-      setInterval(() => { if (conectado) lerConfig().catch(() => {}); }, 4000);
-      setInterval(() => { if (conectado) listarMidia().catch(() => {}); }, 20000);
+      setInterval(() => { if (conectado) lerConfig().catch(() => {}); }, 6000);
+      setInterval(() => { if (conectado) listarMidia().catch(() => {}); }, 10000);
     }
     limparAntigos();
     if (vista === 'relatorio') gerarRelatorio();
     aoMudar();
   }
 
-  $('#b-conectar').addEventListener('click', () => conectar(false));
-  $('#b-outra').addEventListener('click', () => conectar(true));
-  $('#b-trocar').addEventListener('click', () => conectar(true));
+  function desconectar() {
+    conectado = false; token = ''; repo = '';
+    salvarCred(null);
+    etags.clear();
+    dados = vazio(dia); midia = []; chaveMidia = null; relDados = null; ultimoTxtDia = undefined; ultimoTxtCfg = undefined;
+    aviso(''); renderConexao(); renderMidiaLista(); aoMudar();
+  }
+
+  $('#f-conectar').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const b = $('#b-conectar');
+    b.disabled = true; b.textContent = 'Conectando…';
+    const ok = await conectar($('#cx-repo').value, $('#cx-token').value);
+    b.disabled = false; b.textContent = 'Conectar';
+    if (ok) $('#cx-token').value = '';
+  });
+  $('#b-trocar').addEventListener('click', () => {
+    desconectar();
+    $('#cx-repo').focus();
+  });
 
   /* ---------- dados do dia ---------- */
   let vista = 'recepcao';
@@ -642,11 +693,15 @@ td.r, th.r { text-align: right; }
     if (!conectado) return;
     const d = diaStr();
     if (d !== dia) { dia = d; dados = vazio(dia); ultimoTxtDia = undefined; tvPrimed = false; }
-    const txt = await lerTexto(dirDias, dia + '.json');
+    const g = await ghGet('dias/' + dia + '.json');
     ultimaLeitura = Date.now();
+    if (!g.mudou) return;
+    const txt = g.existe ? g.texto : null;
     if (txt === ultimoTxtDia) return;
     let obj = null;
     if (txt) { try { obj = JSON.parse(txt); } catch (e) { return; } }
+    // ignora leitura atrasada do GitHub (mais antiga que o que já temos)
+    if (obj && dadosConfirmados && ((obj.ultimo || 0) < (dados.ultimo || 0) || ((obj.ultimo || 0) === (dados.ultimo || 0) && (obj.seq || 0) < (dados.seq || 0)))) return;
     ultimoTxtDia = txt;
     dados = normal(dia, obj);
     dadosConfirmados = true;
@@ -654,57 +709,44 @@ td.r, th.r { text-align: right; }
   }
 
   async function loopDia() {
-    try { await lerDia(); } catch (e) { /* conta como falha abaixo */ }
+    try { await lerDia(); ultimoErro = ''; } catch (e) { ultimoErro = erroTxt(e); }
     const atraso = Date.now() - ultimaLeitura;
-    const alerta = conectado && atraso > 10000 ? `Sem acesso à pasta há ${fmtDur(atraso)}. Verifique a rede.` : '';
+    const alerta = conectado && atraso > 10000 ? `Sem acesso ao GitHub há ${fmtDur(atraso)}${ultimoErro ? ' (' + ultimoErro + ')' : ''}.` : '';
     $('#tv-alerta').textContent = alerta;
     if (alerta) { aviso(alerta); avisoRede = true; }
     else if (avisoRede) { aviso(''); avisoRede = false; }
-    setTimeout(loopDia, 1500);
+    setTimeout(loopDia, 2500);
   }
 
-  // Trava curta num arquivo, para dois computadores não gravarem a fila ao mesmo tempo.
-  async function pegarTrava() {
-    for (let i = 0; i < 30; i++) {
-      let t = null;
-      try { t = await lerJSON(raiz, 'trava.json'); } catch (e) { t = null; }
-      if (t && t.holder && t.holder !== TAB && Date.now() - t.em < 4000) { await sleep(150 + Math.random() * 250); continue; }
-      try { await escreverTexto(raiz, 'trava.json', JSON.stringify({ holder: TAB, em: Date.now() })); }
-      catch (e) { await sleep(150 + Math.random() * 250); continue; }
-      await sleep(120);
-      try { t = await lerJSON(raiz, 'trava.json'); } catch (e) { t = null; }
-      if (t && t.holder === TAB) return;
-      await sleep(100 + Math.random() * 200);
-    }
-    throw new Error('Outro computador está atualizando a fila. Tente de novo.');
-  }
-  async function soltarTrava() {
-    try { await escreverTexto(raiz, 'trava.json', JSON.stringify({ holder: null, em: 0 })); } catch (e) { /* expira sozinha */ }
-  }
-
+  // Cada gravação leva o "sha" lido; se outro aparelho gravou antes, o GitHub recusa e tentamos de novo.
   async function mutar(fn) {
-    await pegarTrava();
-    try {
+    for (let i = 0; i < 6; i++) {
       const d0 = diaStr();
-      const txt = await lerTexto(dirDias, d0 + '.json');
-      const d = normal(d0, txt ? JSON.parse(txt) : null);
+      const path = 'dias/' + d0 + '.json';
+      const g = await ghGet(path);
+      const d = normal(d0, g.existe && g.texto ? JSON.parse(g.texto) : null);
       const out = fn(d);
       if (out === false) return false;
       const novo = JSON.stringify(d);
-      await escreverTexto(dirDias, d0 + '.json', novo);
+      try { await ghPut(path, novo, g.existe ? g.sha : null, 'atualiza fila'); }
+      catch (e) {
+        if (e.status === 409 || e.status === 422) { await sleep(200 + Math.random() * 300); continue; }
+        throw e;
+      }
       if (d0 === dia) { ultimoTxtDia = novo; dados = d; dadosConfirmados = true; aoMudar(); }
       return out === undefined ? true : out;
-    } finally { await soltarTrava(); }
+    }
+    throw new Error('Outro aparelho está atualizando a fila. Tente de novo.');
   }
 
   let ocupado = false;
   async function acao(fn, msgEl) {
-    if (!conectado) { if (msgEl) setMsg(msgEl, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    if (!conectado) { if (msgEl) setMsg(msgEl, 'Conecte ao GitHub primeiro.', 'erro'); return; }
     if (ocupado) return;
     ocupado = true; travarBotoes(true);
     try { return await fn(); }
     catch (e) {
-      const txt = e instanceof Error && e.name === 'Error' ? e.message : 'Não foi possível salvar na pasta (' + erroTxt(e) + '). Tente de novo.';
+      const txt = e instanceof Error && e.name === 'Error' ? e.message : 'Não foi possível salvar no GitHub (' + erroTxt(e) + '). Tente de novo.';
       if (msgEl) setMsg(msgEl, txt, 'erro');
     } finally { ocupado = false; travarBotoes(false); }
   }
@@ -780,7 +822,9 @@ td.r, th.r { text-align: right; }
   }
 
   async function lerConfig() {
-    const txt = await lerTexto(raiz, 'config.json');
+    const g = await ghGet('config.json');
+    if (!g.mudou) return;
+    const txt = g.existe ? g.texto : null;
     if (txt === ultimoTxtCfg) return;
     let c = {};
     if (txt) { try { c = JSON.parse(txt); } catch (e) { return; } }
@@ -792,33 +836,41 @@ td.r, th.r { text-align: right; }
     midiaMudou();
   }
   async function salvarConfig(parte) {
-    const txt = await lerTexto(raiz, 'config.json');
-    let c = {};
-    if (txt) { try { c = JSON.parse(txt); } catch (e) { c = {}; } }
-    Object.assign(c, parte);
-    const novo = JSON.stringify(c, null, 2);
-    await escreverTexto(raiz, 'config.json', novo);
-    ultimoTxtCfg = novo;
+    for (let i = 0; i < 5; i++) {
+      const g = await ghGet('config.json');
+      let c = {};
+      if (g.existe && g.texto) { try { c = JSON.parse(g.texto); } catch (e) { c = {}; } }
+      Object.assign(c, parte);
+      const novo = JSON.stringify(c, null, 2);
+      try { await ghPut('config.json', novo, g.existe ? g.sha : null, 'atualiza configuração'); ultimoTxtCfg = novo; return; }
+      catch (e) {
+        if (e.status === 409 || e.status === 422) { await sleep(200); continue; }
+        throw e;
+      }
+    }
+    throw new Error('Conflito ao salvar. Tente de novo.');
   }
 
   async function listarMidia() {
-    if (!dirMidia) return;
+    const itens = await ghList('midia');
     const out = [];
-    for await (const [nome, h] of dirMidia.entries()) {
-      if (h.kind !== 'file' || nome.endsWith('.crswap')) continue;
-      if (EXT_VID.test(nome)) out.push({ nome, tipo: 'video' });
-      else if (EXT_IMG.test(nome)) out.push({ nome, tipo: 'imagem' });
+    for (const f of itens) {
+      if (f.type !== 'file') continue;
+      if (EXT_VID.test(f.name)) out.push({ nome: f.name, tipo: 'video', sha: f.sha });
+      else if (EXT_IMG.test(f.name)) out.push({ nome: f.name, tipo: 'imagem', sha: f.sha });
     }
     out.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
-    const chave = out.map(m => m.nome).join('|');
+    const chave = out.map(m => m.nome + ':' + m.sha).join('|');
     if (chave === chaveMidia) return;
     chaveMidia = chave; midia = out;
+    const vivos = new Set(out.map(m => m.nome + ':' + m.sha));
+    for (const [k, u] of [...cacheMidia]) if (!vivos.has(k)) { URL.revokeObjectURL(u); cacheMidia.delete(k); }
     renderMidiaLista(); midiaMudou();
   }
 
   $('#b-cfg').addEventListener('click', async () => {
     const msg = $('#cfg-msg');
-    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    if (!conectado) { setMsg(msg, 'Conecte ao GitHub primeiro.', 'erro'); return; }
     const novo = {
       unidade: $('#c-unidade').value.trim() || CFG_PADRAO.unidade,
       frase: $('#c-frase').value.trim(),
@@ -867,7 +919,7 @@ td.r, th.r { text-align: right; }
   });
   $('#b-prog-salvar').addEventListener('click', async () => {
     const msg = $('#prog-msg');
-    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    if (!conectado) { setMsg(msg, 'Conecte ao GitHub primeiro.', 'erro'); return; }
     const itens = lerProgEditor().filter(p => p.titulo);
     try {
       await salvarConfig({ programas: itens });
@@ -883,30 +935,25 @@ td.r, th.r { text-align: right; }
         <span class="pill tipo">${m.tipo === 'video' ? 'Vídeo' : 'Cartaz'}</span>
         <span class="info"><b>${esc(m.nome)}</b></span><span></span>
         <span class="mini"><button class="btn sm fant" type="button" data-i="${i}">Remover</button></span></li>`).join('')
-      : `<li class="vazio">${conectado ? 'Nenhum vídeo ou cartaz na pasta midia.' : 'Conecte à pasta para ver os arquivos.'}</li>`;
+      : `<li class="vazio">${conectado ? 'Nenhum vídeo ou cartaz enviado ainda.' : 'Conecte ao GitHub para ver os arquivos.'}</li>`;
   }
   $('#m-arquivo').addEventListener('change', async ev => {
     const files = [...ev.target.files]; ev.target.value = '';
     const msg = $('#m-msg');
-    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    if (!conectado) { setMsg(msg, 'Conecte ao GitHub primeiro.', 'erro'); return; }
     for (const f of files) {
-      const nome = f.name.replace(/[\\/:*?"<>|]/g, '_');
+      const nome = f.name.replace(/[\\/:*?"<>|#%]/g, '_');
       if (!EXT_VID.test(nome) && !EXT_IMG.test(nome)) { setMsg(msg, `${nome}: formato não aceito. Use MP4, WebM, PNG, JPG ou WebP.`, 'erro'); continue; }
-      let existe = false;
-      try { await dirMidia.getFileHandle(nome); existe = true; } catch (e) { /* não existe */ }
-      if (existe) { setMsg(msg, `${nome} já está na pasta.`, ''); continue; }
-      setMsg(msg, `Copiando ${nome}…`, '');
+      if (f.size > LIM_MIDIA) { setMsg(msg, `${nome} tem mais de 25 MB. Comprima o vídeo e tente de novo.`, 'erro'); continue; }
+      if (midia.some(m => m.nome === nome)) { setMsg(msg, `${nome} já foi enviado.`, ''); continue; }
+      setMsg(msg, `Enviando ${nome}…`, '');
       try {
-        const fh = await dirMidia.getFileHandle(nome, { create: true });
-        const w = await fh.createWritable();
-        await w.write(f); await w.close();
+        await putBody('midia/' + nome, { message: 'adiciona mídia', content: await arquivoB64(f) });
         setMsg(msg, `${nome} adicionado. A TV passa a exibir em instantes.`, 'ok');
       } catch (e) {
-        setMsg(msg, `Não foi possível copiar ${nome} (${erroTxt(e)}).`, 'erro');
-        try { await dirMidia.removeEntry(nome); } catch (_) { /* nada */ }
+        setMsg(msg, `Não foi possível enviar ${nome} (${erroTxt(e)}).`, 'erro');
       }
     }
-    chaveMidia = null;
     await listarMidia().catch(() => {});
   });
   $('#m-lista').addEventListener('click', async ev => {
@@ -919,12 +966,11 @@ td.r, th.r { text-align: right; }
     const m = midia[Number(b.dataset.i)]; if (!m) return;
     const msg = $('#m-msg');
     try {
-      await dirMidia.removeEntry(m.nome);
+      await ghDel('midia/' + m.nome, m.sha);
       setMsg(msg, `${m.nome} removido.`, '');
     } catch (e) {
-      setMsg(msg, `Não foi possível remover ${m.nome} (${erroTxt(e)}). Se estiver passando na TV agora, tente de novo em instantes.`, 'erro');
+      setMsg(msg, `Não foi possível remover ${m.nome} (${erroTxt(e)}).`, 'erro');
     }
-    chaveMidia = null;
     await listarMidia().catch(() => {});
   });
 
@@ -940,7 +986,7 @@ td.r, th.r { text-align: right; }
     const off = !conectado;
 
     $('#cont-fila').textContent = fila.length ? `${fila.length} ${fila.length === 1 ? 'pessoa' : 'pessoas'}` : '';
-    $('#fila').innerHTML = off ? '<li class="vazio">Conecte à pasta para ver a fila.</li>' : fila.length ? fila.map(s => {
+    $('#fila').innerHTML = off ? '<li class="vazio">Conecte ao GitHub para ver a fila.</li>' : fila.length ? fila.map(s => {
       const w = agora - s.chegada;
       const cls = w >= 40 * 60000 ? 'crit' : w >= 20 * 60000 ? 'warn' : '';
       return `<li class="item"><span class="sen">${pad3(s.n)}</span>
@@ -1041,7 +1087,7 @@ td.r, th.r { text-align: right; }
 
   function checarAnuncio() {
     const seq = dados.seq || 0, a = dados.atual;
-    // Só anuncia mudanças vistas depois da primeira leitura da pasta.
+    // Só anuncia mudanças vistas depois da primeira leitura dos dados.
     if (!tvPrimed) { tvSeq = seq; if (dadosConfirmados) tvPrimed = true; return; }
     if (seq !== tvSeq) {
       tvSeq = seq;
@@ -1143,8 +1189,6 @@ td.r, th.r { text-align: right; }
     } catch (e) { /* segue */ }
     somAtivo = true;
     marcarSom();
-    // Depois a pasta (também precisa do clique).
-    if (!conectado) await conectar(false);
     if (!conectado) { renderConexao(); return; }
     $('#tv-ativar').hidden = true;
     pedirWakeLock();
@@ -1184,7 +1228,7 @@ td.r, th.r { text-align: right; }
     });
     return out;
   }
-  function trocarUrl(nova) { const velha = urlAtual; urlAtual = nova; if (velha) setTimeout(() => URL.revokeObjectURL(velha), 500); }
+  function trocarUrl(nova) { urlAtual = nova; }
   function pararMidia() {
     clearTimeout(playTimer); playTok++; tocando = false;
     $('#tv-midia').innerHTML = '';
@@ -1209,11 +1253,9 @@ td.r, th.r { text-align: right; }
     const it = lista[playIdx];
     if (it.tipo === 'video' || it.tipo === 'imagem') {
       let url;
-      try {
-        const f = await (await dirMidia.getFileHandle(it.nome)).getFile();
-        url = URL.createObjectURL(f);
-      } catch (e) { if (tok === playTok) seguir(2000); return; }
-      if (tok !== playTok) { URL.revokeObjectURL(url); return; }
+      try { url = await urlMidia(it); }
+      catch (e) { if (tok === playTok) seguir(5000); return; }
+      if (tok !== playTok) return;
       if (it.tipo === 'video') {
         box.innerHTML = '';
         const v = document.createElement('video');
@@ -1253,19 +1295,14 @@ td.r, th.r { text-align: right; }
 
   async function gerarRelatorio() {
     const de = $('#r-de').value, ate = $('#r-ate').value, st = $('#r-status');
-    if (!conectado) { st.textContent = 'Conecte à pasta compartilhada.'; return; }
+    if (!conectado) { st.textContent = 'Conecte ao GitHub.'; return; }
     if (!de || !ate || de > ate) { st.textContent = 'Escolha um período válido.'; return; }
     st.textContent = 'Carregando…';
     try {
-      const nomes = [];
-      for await (const [nome, h] of dirDias.entries()) {
-        if (h.kind !== 'file' || !RE_DIA.test(nome)) continue;
-        const d = nome.slice(0, 10);
-        if (d >= de && d <= ate) nomes.push(d);
-      }
+      const nomes = (await ghList('dias')).filter(f => f.type === 'file' && RE_DIA.test(f.name)).map(f => f.name.slice(0, 10)).filter(d => d >= de && d <= ate);
       const dias = [];
       for (const d of nomes) {
-        try { dias.push(normal(d, await lerJSON(dirDias, d + '.json'))); } catch (e) { /* arquivo ilegível: pula */ }
+        try { dias.push(normal(d, await lerJSONgh('dias/' + d + '.json'))); } catch (e) { if (e && e.status) throw e; /* arquivo ilegível: pula */ }
       }
       relDados = { de, ate, dias: dias.sort((x, y) => x.dia < y.dia ? -1 : 1) };
       desenharRel();
@@ -1338,11 +1375,8 @@ td.r, th.r { text-align: right; }
   async function limparAntigos() {
     try {
       const corte = addDias(diaStr(), -RETENCAO);
-      const velhos = [];
-      for await (const [nome, h] of dirDias.entries()) {
-        if (h.kind === 'file' && RE_DIA.test(nome) && nome.slice(0, 10) < corte) velhos.push(nome);
-      }
-      for (const n of velhos) await dirDias.removeEntry(n).catch(() => {});
+      const velhos = (await ghList('dias')).filter(f => f.type === 'file' && RE_DIA.test(f.name) && f.name.slice(0, 10) < corte);
+      for (const f of velhos) await ghDel('dias/' + f.name, f.sha).catch(() => {});
     } catch (e) { /* tenta de novo na próxima abertura */ }
   }
 
@@ -1385,14 +1419,11 @@ td.r, th.r { text-align: right; }
   setInterval(() => { if (vista === 'recepcao' && !ocupado) renderRecepcao(); }, 15000);
 
   (async () => {
-    if (!SUPORTA) { renderConexao(); return; }
-    handleSalvo = await idbGet('pasta');
-    if (handleSalvo) {
-      try {
-        if ((await handleSalvo.queryPermission({ mode: 'readwrite' })) === 'granted') { await usarPasta(handleSalvo); return; }
-      } catch (e) {
-        aviso('A pasta salva não respondeu (' + erroTxt(e) + '). Verifique a rede e clique em Reconectar.');
-      }
+    const c = lerCred();
+    if (c && c.repo && c.token) {
+      repo = c.repo; token = c.token;
+      $('#cx-repo').value = c.repo;
+      try { await usar(); } catch (e) { aviso('Não foi possível conectar ao GitHub (' + erroTxt(e) + ').'); }
     }
     renderConexao();
   })();
