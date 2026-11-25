@@ -1,0 +1,1402 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel de Senhas</title>
+<style>
+/* Versão offline: os dados ficam numa pasta de rede compartilhada entre a recepção e a TV */
+:root {
+  color-scheme: light;
+  --bg: #eef3f4;
+  --surface: #ffffff;
+  --sunk: #e3ecee;
+  --ink: #0f2a33;
+  --muted: #557079;
+  --line: #d3e0e3;
+  --accent: #0b6677;
+  --accent-ink: #ffffff;
+  --mark: #f2c230;
+  --mark-ink: #2b2100;
+  --ok: #1d7f47;
+  --warn: #a8650c;
+  --crit: #b8322a;
+  --tv-bg: #ffffff;
+  --tv-soft: #f2f6f7;
+  --tv-ink: #10262d;
+  --tv-muted: #5f7880;
+  --tv-line: #e0e8ea;
+  --tv-accent: #0b6677;
+  --tv-accent-soft: #e3f1f3;
+  --tv-mark: #f2c230;
+  --f-text: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-disp: "Barlow Semi Condensed", "Bahnschrift SemiCondensed", "Bahnschrift", "Arial Narrow", "Segoe UI", sans-serif;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b181c; --surface: #11242a; --sunk: #0e1e23; --ink: #e5eff1; --muted: #8ea8af; --line: #23404a;
+    --accent: #45b4c5; --accent-ink: #04242a; --mark: #f2c230; --mark-ink: #2b2100;
+    --ok: #52c584; --warn: #e3a64c; --crit: #f0705f; color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-text); font-size: 16px; line-height: 1.45; }
+body.modo-tv { background: var(--tv-bg); color-scheme: light; }
+[hidden] { display: none !important; }
+#app { min-height: 100%; display: flex; flex-direction: column; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--f-disp); font-weight: 600; margin: 0; text-wrap: balance; }
+.sen, table, .espera, .tile b { font-variant-numeric: tabular-nums; }
+code { background: var(--sunk); border-radius: 4px; padding: 0 5px; font-size: .9em; }
+
+/* topo */
+.topo { background: var(--surface); border-bottom: 1px solid var(--line); }
+.topo-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; max-width: 1280px; margin: 0 auto; }
+.marca { display: flex; align-items: center; gap: 10px; }
+.marca i { width: 14px; height: 28px; background: var(--mark); border-radius: 3px; display: block; }
+.marca h1 { font-size: 1.35rem; letter-spacing: .01em; }
+.marca span { color: var(--muted); font-size: .9rem; }
+.pasta-st { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
+.pasta-st i { width: 9px; height: 9px; border-radius: 50%; background: var(--crit); display: block; }
+.pasta-st.ok i { background: var(--ok); }
+nav { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 18px; }
+nav a { text-decoration: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: .92rem; }
+nav a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+
+.aviso { background: var(--mark); color: var(--mark-ink); font-weight: 700; padding: 10px 16px; }
+.conexao { background: var(--surface); border-bottom: 1px solid var(--line); }
+.conexao-in { max-width: 1280px; margin: 0 auto; padding: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.conexao-in > div { flex: 1 1 320px; }
+.conexao b { font-family: var(--f-disp); font-size: 1.25rem; font-weight: 600; }
+.conexao p { margin: 2px 0 0; color: var(--muted); }
+
+.vista { width: 100%; max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+
+/* botões e campos */
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 9px 14px; cursor: pointer; font-weight: 700; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.prim { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.sm { padding: 5px 10px; font-size: .85rem; }
+.btn.fant { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.fant.conf { color: var(--crit); border-color: var(--crit); }
+.btn.grande { width: 100%; padding: 18px; font-family: var(--f-disp); font-size: 1.6rem; font-weight: 700;
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: var(--r); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.btn.grande small { font-family: var(--f-text); font-size: .9rem; font-weight: 400; opacity: .9; }
+label { font-weight: 700; font-size: .9rem; color: var(--muted); }
+input[type="text"], input[type="date"], textarea, select { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 1rem; }
+textarea { resize: vertical; width: 100%; }
+.dica { margin: 0; min-height: 1.4em; font-size: .92rem; color: var(--muted); }
+.dica.ok { color: var(--ok); font-weight: 700; }
+.dica.erro { color: var(--crit); font-weight: 700; }
+.nota { color: var(--muted); font-size: .9rem; margin: 0; }
+
+/* recepção */
+.rec { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cartao { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cartao h2 { font-size: 1.2rem; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cont { font-family: var(--f-text); font-size: .9rem; color: var(--muted); font-weight: 400; }
+.linha { display: flex; gap: 8px; flex-wrap: wrap; }
+.linha input { flex: 1 1 200px; min-width: 0; font-size: 1.05rem; }
+.atual-box { display: flex; align-items: center; gap: 14px; min-height: 64px; }
+.atual-box .sen { font-size: 2.6rem; padding: 4px 14px; }
+.atual-box .vazio { padding: 0; }
+.atual-box p { margin: 0; }
+.atual-box b { font-size: 1.15rem; display: block; }
+.atual-box small { color: var(--muted); }
+.acoes { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.resumo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.resumo div { background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; }
+.resumo span { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.resumo b { font-family: var(--f-disp); font-size: 1.5rem; font-weight: 600; }
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.item:first-child { border-top: 0; }
+.sen { font-family: var(--f-disp); font-weight: 700; font-size: 1.3rem; background: var(--sunk); border-radius: 6px; padding: 2px 8px; letter-spacing: .03em; }
+.info { display: flex; flex-direction: column; min-width: 0; }
+.info b { overflow-wrap: anywhere; }
+.info small { color: var(--muted); }
+.espera { font-weight: 700; white-space: nowrap; }
+.espera.warn { color: var(--warn); }
+.espera.crit { color: var(--crit); }
+.mini { display: flex; gap: 4px; justify-content: flex-end; }
+.pill { font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid currentColor; }
+.pill.ok { color: var(--ok); }
+.pill.aus { color: var(--crit); }
+.pill.tela { color: var(--mark-ink); background: var(--mark); border-color: var(--mark); }
+.pill.tipo { color: var(--accent); }
+.vazio { color: var(--muted); padding: 14px 0; }
+
+/* configurar */
+.conf { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 20px; align-items: start; }
+.campos { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.campos input, .campos select { margin-bottom: 8px; min-width: 0; }
+.prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.prog:first-child { border-top: 0; }
+.prog input { grid-column: 1; font-weight: 700; min-width: 0; }
+.prog textarea { grid-column: 1; }
+.prog-acoes { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 4px; }
+.arquivo { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- painel TV (branco) ---------- */
+.tv { flex: 1; display: flex; flex-direction: column; background: var(--tv-bg); color: var(--tv-ink); position: relative; overflow: hidden; padding: 2.2vh 2.5vw; gap: 2.2vh; min-height: 100vh; }
+.tv-topo { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-bottom: 1.6vh; border-bottom: 1px solid var(--tv-line); }
+.tv-local { font-family: var(--f-disp); font-size: clamp(1.4rem, 2.4vw, 2.6rem); font-weight: 600; display: flex; align-items: center; gap: .5em; }
+.tv-local i { width: .4em; height: 1.1em; background: var(--tv-mark); border-radius: 3px; display: block; }
+.tv-relogio { display: flex; align-items: baseline; gap: 1vw; }
+#tv-hora { font-family: var(--f-disp); font-size: clamp(1.8rem, 3.2vw, 3.4rem); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+#tv-data { color: var(--tv-muted); font-size: clamp(.9rem, 1.3vw, 1.3rem); text-transform: capitalize; }
+.tv-corpo { flex: 1; display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 2.2vw; min-height: 0; }
+.tv-midia { background: var(--tv-soft); border-radius: 18px; overflow: hidden; position: relative; display: flex; align-items: stretch; justify-content: center; min-height: 0; }
+.tv-midia video, .tv-midia img { width: 100%; height: 100%; object-fit: contain; display: block; background: var(--tv-soft); }
+.slide { display: flex; flex-direction: column; justify-content: center; gap: 2.4vh; padding: 5vh 4.5vw; width: 100%; animation: surge .6s ease-out; }
+.slide-tag { align-self: flex-start; font-size: clamp(.9rem, 1.2vw, 1.3rem); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--tv-accent); background: var(--tv-accent-soft); padding: .35em .9em; border-radius: 999px; }
+.slide h2 { font-size: clamp(2.2rem, 4.4vw, 5rem); line-height: 1.02; font-weight: 700; color: var(--tv-ink); }
+.slide p { font-size: clamp(1.2rem, 2vw, 2.3rem); line-height: 1.35; color: var(--tv-muted); margin: 0; max-width: 34ch; }
+.slide.vazio p { max-width: none; }
+.slide-pontos { display: flex; gap: 8px; position: absolute; bottom: 2vh; left: 4.5vw; }
+.slide-pontos i { width: 8px; height: 8px; border-radius: 50%; background: var(--tv-line); display: block; }
+.slide-pontos i.on { background: var(--tv-accent); }
+@keyframes surge { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.tv-lado { display: flex; flex-direction: column; gap: 2.2vh; min-width: 0; min-height: 0; }
+.tv-atual { border: 2px solid var(--tv-line); border-radius: 18px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2.6vh 1.5vw; gap: .6vh; }
+.tv-rot { text-transform: uppercase; letter-spacing: .28em; color: var(--tv-muted); font-size: clamp(.9rem, 1.4vw, 1.5rem); font-weight: 700; }
+.tv-num { font-family: var(--f-disp); font-weight: 700; line-height: .95; font-size: clamp(5rem, 10vw, 11rem); color: var(--tv-accent); font-variant-numeric: tabular-nums; }
+.tv-nome { font-size: clamp(1.4rem, 2.5vw, 2.8rem); font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.tv-dir { color: var(--tv-muted); font-size: clamp(.9rem, 1.3vw, 1.4rem); }
+.tv-atual.chamando { animation: piscar 1s ease-in-out 4; }
+@keyframes piscar { 0%, 100% { border-color: var(--tv-line); background: var(--tv-bg); } 50% { border-color: var(--tv-accent); background: var(--tv-accent-soft); } }
+.tv-hist { display: flex; flex-direction: column; gap: 1vh; min-height: 0; }
+.tv-hist h3 { font-family: var(--f-text); font-size: clamp(.85rem, 1.2vw, 1.3rem); color: var(--tv-muted); text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
+.tv-hist ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tv-hist li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 1vw; padding: 1.1vh 0; border-top: 1px solid var(--tv-line); }
+.tv-hist li:first-child { border-top: 0; }
+.h-num { font-family: var(--f-disp); font-weight: 700; font-size: clamp(1.4rem, 2.4vw, 2.6rem); color: var(--tv-accent); font-variant-numeric: tabular-nums; }
+.h-nome { font-size: clamp(1rem, 1.5vw, 1.6rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-hora { color: var(--tv-muted); font-size: clamp(.85rem, 1.2vw, 1.2rem); font-variant-numeric: tabular-nums; }
+li.h-vazio { display: block; color: var(--tv-muted); }
+.tv-rodape { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--tv-muted); font-size: clamp(.95rem, 1.4vw, 1.5rem); }
+.tv-rodape b { color: var(--tv-ink); }
+.tv-alerta { color: #b8322a; font-weight: 700; }
+.tv-som { background: transparent; border: 1px solid var(--tv-line); color: var(--tv-muted); border-radius: 999px; padding: 4px 14px; font-size: clamp(.8rem, 1vw, 1rem); cursor: pointer; }
+.tv-som.off { background: var(--tv-mark); color: #2b2100; border-color: var(--tv-mark); font-weight: 700; }
+.tv-chamada { position: absolute; inset: 0; z-index: 6; background: rgb(255 255 255 / .97); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.5vh; padding: 4vh 4vw; }
+.tv-chamada.entra { animation: entra .45s cubic-bezier(.2,.8,.2,1); }
+.tv-chamada .tv-rot { font-size: clamp(1.4rem, 2.6vw, 3rem); }
+#ov-num { font-family: var(--f-disp); font-weight: 700; line-height: .9; font-size: clamp(8rem, 24vw, 26rem); color: var(--tv-accent); font-variant-numeric: tabular-nums; }
+#ov-nome { font-size: clamp(2.4rem, 5.6vw, 6.4rem); font-weight: 700; line-height: 1.1; color: var(--tv-ink); overflow-wrap: anywhere; }
+#ov-frase { font-size: clamp(1.2rem, 2.2vw, 2.6rem); color: var(--tv-muted); }
+@keyframes entra { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tv-chamada.entra, .slide, .tv-atual.chamando { animation: none; } }
+.tv-ativar { position: absolute; inset: 0; background: rgb(255 255 255 / .95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; z-index: 7; }
+.tv-ativar button { font-family: var(--f-disp); font-size: clamp(1.6rem, 3vw, 2.6rem); font-weight: 700; background: var(--tv-accent); color: #ffffff; border: 0; border-radius: 14px; padding: 18px 36px; cursor: pointer; }
+.tv-ativar p { color: var(--tv-muted); margin: 0; max-width: 44ch; font-size: 1.1rem; }
+.tv-ativar a { color: var(--tv-muted); font-size: .95rem; }
+.tv-ctrl { position: absolute; right: 12px; top: 12px; display: flex; gap: 8px; opacity: 0; transition: opacity .2s; z-index: 8; }
+.tv:hover .tv-ctrl, .tv-ctrl:focus-within { opacity: 1; }
+.tv-ctrl button, .tv-ctrl a { background: var(--tv-bg); color: var(--tv-ink); border: 1px solid var(--tv-line); border-radius: 8px; padding: 8px 12px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
+
+/* relatório */
+.rel { display: flex; flex-direction: column; gap: 18px; }
+.filtros { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.filtros .campo { display: flex; flex-direction: column; gap: 4px; }
+.rapidos { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtros .direita { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.tile span { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.tile b { font-family: var(--f-disp); font-size: 2rem; font-weight: 600; line-height: 1.1; }
+.tile small { color: var(--muted); }
+.tile.dest { border-color: var(--accent); }
+.grafico { overflow-x: auto; }
+.barras { display: flex; align-items: flex-end; gap: 8px; height: 220px; padding-top: 24px; min-width: max-content; border-bottom: 1px solid var(--line); background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 25%; background-position: 0 24px; }
+.barra { width: 46px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+.barra i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+.barra em { font-style: normal; font-size: .8rem; font-weight: 700; margin-bottom: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eixo { display: flex; gap: 8px; min-width: max-content; }
+.eixo div { width: 46px; text-align: center; font-size: .8rem; color: var(--muted); line-height: 1.25; padding-top: 6px; }
+.eixo b { color: var(--ink); display: block; }
+.tabela { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+td.nome { white-space: normal; min-width: 160px; }
+td.r, th.r { text-align: right; }
+
+@media (max-width: 860px) {
+  .rec { grid-template-columns: minmax(0, 1fr); }
+  .tv-corpo { grid-template-columns: minmax(0, 1fr); }
+  .tv-midia { min-height: 40vh; }
+  .item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .item .mini { grid-column: 1 / -1; justify-content: flex-start; }
+  .filtros .direita { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topo" id="topo">
+    <div class="topo-in">
+      <div class="marca"><i aria-hidden="true"></i><h1 id="topo-unidade">Sala de Vacina</h1><span>Painel de senhas</span></div>
+      <div class="pasta-st" id="pasta-st" title="Pasta compartilhada"><i aria-hidden="true"></i><span>Sem pasta</span></div>
+      <nav aria-label="Telas">
+        <a href="#recepcao" data-v="recepcao">Recepção</a>
+        <a href="#painel" data-v="painel">Painel TV</a>
+        <a href="#relatorio" data-v="relatorio">Relatório</a>
+        <a href="#configurar" data-v="configurar">Configurar</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="conexao" id="conexao" hidden>
+    <div class="conexao-in">
+      <div>
+        <b id="cx-tit">Conecte à pasta compartilhada</b>
+        <p id="cx-txt"></p>
+      </div>
+      <button class="btn prim" id="b-conectar" type="button">Escolher pasta</button>
+      <button class="btn" id="b-outra" type="button" hidden>Escolher outra pasta</button>
+    </div>
+  </section>
+  <div id="aviso" class="aviso" role="status" hidden></div>
+
+  <!-- RECEPÇÃO -->
+  <main id="v-recepcao" class="vista" hidden>
+    <div class="rec">
+      <section class="col">
+        <form id="f-cad" class="cartao" autocomplete="off">
+          <h2>Nova chegada</h2>
+          <label for="nome">Nome e sobrenome</label>
+          <div class="linha">
+            <input type="text" id="nome" maxlength="60" placeholder="Ex.: Maria Souza" required>
+            <button class="btn prim" type="submit" id="b-cad">Gerar senha</button>
+          </div>
+          <p class="dica" id="cad-msg">A senha segue a ordem de chegada e recomeça em 001 a cada dia.</p>
+        </form>
+
+        <button id="b-proximo" class="btn grande" type="button" disabled>Chamar próximo<small id="prox-info">Fila vazia</small></button>
+
+        <div class="cartao">
+          <h2>Chamada no painel</h2>
+          <div class="atual-box" id="atual-box"><p class="vazio">Nenhuma pessoa chamada hoje.</p></div>
+          <div class="acoes">
+            <button id="b-rechamar" class="btn" type="button" disabled>Chamar de novo</button>
+            <button id="b-ausente" class="btn" type="button" disabled>Não compareceu</button>
+          </div>
+          <p class="dica" id="op-msg"></p>
+        </div>
+
+        <div class="resumo" id="resumo-hoje"></div>
+      </section>
+
+      <section class="col">
+        <div class="cartao">
+          <h2>Fila de espera <span class="cont" id="cont-fila"></span></h2>
+          <ol id="fila" class="lista"><li class="vazio">Conecte à pasta para ver a fila.</li></ol>
+        </div>
+        <div class="cartao">
+          <h2>Chamados hoje <span class="cont" id="cont-cham"></span></h2>
+          <ol id="chamados" class="lista"></ol>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- PAINEL TV -->
+  <main id="v-painel" class="tv" hidden>
+    <div class="tv-topo">
+      <div class="tv-local"><i aria-hidden="true"></i><span id="tv-unidade">Sala de Vacina</span></div>
+      <div class="tv-relogio"><span id="tv-data"></span><span id="tv-hora">--:--</span></div>
+    </div>
+    <div class="tv-corpo">
+      <section class="tv-midia" id="tv-midia" aria-label="Programas de saúde e vídeos"></section>
+      <aside class="tv-lado">
+        <section class="tv-atual" id="tv-atual" aria-live="polite">
+          <div class="tv-rot">Senha</div>
+          <div class="tv-num" id="tv-num">---</div>
+          <div class="tv-nome" id="tv-nome">Aguardando a primeira chamada</div>
+          <div class="tv-dir" id="tv-dir">Dirija-se à sala de vacinação</div>
+        </section>
+        <div class="tv-hist">
+          <h3>Últimas chamadas</h3>
+          <ol id="tv-hist"></ol>
+        </div>
+      </aside>
+    </div>
+    <div class="tv-rodape"><span id="tv-fila"></span><span class="tv-alerta" id="tv-alerta"></span><button type="button" class="tv-som off" id="tv-som">Som desligado · clique para ativar</button></div>
+
+    <div class="tv-chamada" id="tv-chamada" hidden>
+      <div class="tv-rot">Senha</div>
+      <div id="ov-num">000</div>
+      <div id="ov-nome"></div>
+      <div id="ov-frase"></div>
+    </div>
+    <div class="tv-ativar" id="tv-ativar">
+      <button id="b-ativar" type="button">Ativar painel</button>
+      <p id="tv-ativar-txt">Clique uma vez neste computador para liberar o som e a voz das chamadas.</p>
+      <a href="#recepcao">Voltar para a recepção</a>
+    </div>
+    <div class="tv-ctrl">
+      <button id="b-testar" type="button">Testar som</button>
+      <button id="b-tela" type="button">Tela cheia</button>
+      <a href="#recepcao">Sair do painel</a>
+    </div>
+  </main>
+
+  <!-- RELATÓRIO -->
+  <main id="v-relatorio" class="vista" hidden>
+    <div class="rel">
+      <div class="cartao">
+        <div class="filtros">
+          <div class="campo"><label for="r-de">De</label><input type="date" id="r-de"></div>
+          <div class="campo"><label for="r-ate">Até</label><input type="date" id="r-ate"></div>
+          <div class="rapidos">
+            <button class="btn sm" type="button" data-p="0">Hoje</button>
+            <button class="btn sm" type="button" data-p="6">7 dias</button>
+            <button class="btn sm" type="button" data-p="29">30 dias</button>
+            <button class="btn sm" type="button" data-p="59">60 dias</button>
+          </div>
+          <div class="direita">
+            <span class="nota" id="r-status"></span>
+            <button class="btn prim" type="button" id="b-exportar" disabled>Exportar planilha (CSV)</button>
+          </div>
+        </div>
+        <p class="nota">Tempo de espera = da chegada (senha gerada) até a primeira chamada no painel. Os registros ficam guardados por 60 dias.</p>
+      </div>
+      <div class="tiles" id="r-tiles"></div>
+      <div class="cartao">
+        <h2>Espera média por horário de chegada</h2>
+        <div class="grafico" id="r-graf"><p class="nota">Sem dados no período.</p></div>
+      </div>
+      <div class="cartao">
+        <h2>Por dia</h2>
+        <div class="tabela" id="r-dias"></div>
+      </div>
+      <div class="cartao">
+        <h2>Atendimentos</h2>
+        <div class="tabela" id="r-det"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- CONFIGURAR -->
+  <main id="v-configurar" class="vista" hidden>
+    <div class="conf">
+      <div class="col">
+        <section class="cartao">
+          <h2>Pasta compartilhada</h2>
+          <p class="nota">Pasta atual: <b id="cfg-pasta">nenhuma</b></p>
+          <p class="nota">Dentro dela ficam <code>dias</code> (um arquivo por dia), <code>midia</code> (vídeos e cartazes) e <code>config.json</code>. A recepção e a TV precisam apontar para a mesma pasta.</p>
+          <div class="acoes"><button class="btn" id="b-trocar" type="button">Trocar pasta</button></div>
+        </section>
+
+        <section class="cartao" id="cfg-tv">
+          <h2>Painel da TV</h2>
+          <div class="campos">
+            <label for="c-unidade">Nome da unidade (topo da TV)</label>
+            <input type="text" id="c-unidade" maxlength="50">
+            <label for="c-frase">Frase abaixo do nome chamado</label>
+            <input type="text" id="c-frase" maxlength="80">
+            <label for="c-repetir">Anúncio por chamada</label>
+            <select id="c-repetir">
+              <option value="1">Falar uma vez</option>
+              <option value="2">Falar duas vezes</option>
+            </select>
+            <label for="c-vel">Velocidade da voz</label>
+            <select id="c-vel">
+              <option value="0.8">Lenta</option>
+              <option value="0.92">Normal</option>
+              <option value="1.1">Rápida</option>
+            </select>
+            <label for="c-somvid">Som dos vídeos</label>
+            <select id="c-somvid">
+              <option value="0">Vídeos sem som</option>
+              <option value="1">Vídeos com som (pausam durante a chamada)</option>
+            </select>
+          </div>
+          <div class="acoes"><button class="btn prim" id="b-cfg" type="button">Salvar</button></div>
+          <p class="dica" id="cfg-msg">A TV aplica as mudanças em poucos segundos.</p>
+        </section>
+
+        <section class="cartao">
+          <h2>Vídeos e cartazes</h2>
+          <p class="nota">Vídeos MP4 ou WebM e imagens (PNG, JPG, WebP). Passam na TV em sequência, intercalados com os programas de saúde. Você também pode copiar os arquivos direto para a pasta <code>midia</code>; a ordem segue o nome do arquivo.</p>
+          <div class="arquivo">
+            <label for="m-arquivo">Adicionar arquivos</label>
+            <input type="file" id="m-arquivo" accept="video/mp4,video/webm,image/png,image/jpeg,image/webp,image/gif" multiple>
+          </div>
+          <ol id="m-lista" class="lista"></ol>
+          <p class="dica" id="m-msg"></p>
+        </section>
+      </div>
+
+      <section class="cartao">
+        <h2>Programas de saúde</h2>
+        <p class="nota">Cada programa vira uma tela na TV por 14 segundos. Deixe só os que a sua unidade oferece.</p>
+        <div id="prog-lista"></div>
+        <div class="acoes">
+          <button class="btn" id="b-prog-add" type="button">Adicionar programa</button>
+          <button class="btn prim" id="b-prog-salvar" type="button">Salvar programas</button>
+        </div>
+        <p class="dica" id="prog-msg"></p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pad3 = n => String(n).padStart(3, '0');
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const RETENCAO = 60;
+  const TAB = (crypto.randomUUID && crypto.randomUUID()) || ('t' + Math.random().toString(36).slice(2));
+  const RE_DIA = /^\d{4}-\d{2}-\d{2}\.json$/;
+  const EXT_VID = /\.(mp4|webm|m4v)$/i, EXT_IMG = /\.(png|jpe?g|webp|gif)$/i;
+
+  function diaStr(d = new Date()) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function addDias(str, k) { const [y, m, d] = str.split('-').map(Number); return diaStr(new Date(y, m - 1, d + k)); }
+  function fmtHora(ms) { return ms ? new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'; }
+  function fmtData(str) { const [y, m, d] = str.split('-'); return `${d}/${m}/${y}`; }
+  function fmtDur(ms) {
+    if (ms == null || isNaN(ms)) return '—';
+    const s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return s + ' s';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + ' min';
+    return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min';
+  }
+  function nomeBonito(s) {
+    const minus = new Set(['da', 'de', 'do', 'das', 'dos', 'e']);
+    return s.trim().replace(/\s+/g, ' ').toLowerCase().split(' ')
+      .map((w, i) => (i > 0 && minus.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+  function estat(lista) {
+    const esp = lista.filter(s => s.chamada).map(s => s.chamada - s.chegada);
+    return {
+      total: lista.length,
+      chamados: lista.filter(s => s.status === 'chamado').length,
+      ausentes: lista.filter(s => s.status === 'ausente').length,
+      aguardando: lista.filter(s => s.status === 'aguardando').length,
+      n: esp.length,
+      media: esp.length ? esp.reduce((a, b) => a + b, 0) / esp.length : null,
+      max: esp.length ? Math.max(...esp) : null,
+      min: esp.length ? Math.min(...esp) : null,
+    };
+  }
+  function setMsg(el, txt, cls) { el.textContent = txt; el.className = 'dica' + (cls ? ' ' + cls : ''); }
+  function aviso(txt) { const el = $('#aviso'); el.textContent = txt; el.hidden = !txt; }
+
+  /* ---------- pasta compartilhada ---------- */
+  const SUPORTA = 'showDirectoryPicker' in window;
+  let raiz = null, dirDias = null, dirMidia = null, conectado = false, handleSalvo = null;
+  let ultimaLeitura = 0, avisoRede = false, loopsOn = false;
+
+  function abrirIdb() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('painel-senhas', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbGet(k) {
+    try {
+      const db = await abrirIdb();
+      return await new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
+    } catch (e) { return null; }
+  }
+  async function idbSet(k, v) {
+    try {
+      const db = await abrirIdb();
+      await new Promise((res, rej) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    } catch (e) { /* sem memória da pasta: pede de novo na próxima abertura */ }
+  }
+
+  async function lerTexto(dir, nome) {
+    for (let i = 0; i < 3; i++) {
+      try {
+        const fh = await dir.getFileHandle(nome);
+        const f = await fh.getFile();
+        return await f.text();
+      } catch (e) {
+        if (e && e.name === 'NotFoundError') return null;
+        if (i === 2) throw e;
+        await sleep(120);
+      }
+    }
+  }
+  async function escreverTexto(dir, nome, conteudo) {
+    const fh = await dir.getFileHandle(nome, { create: true });
+    const w = await fh.createWritable();
+    try { await w.write(conteudo); await w.close(); }
+    catch (e) { try { await w.abort(); } catch (_) { /* nada */ } throw e; }
+  }
+  async function lerJSON(dir, nome) { const t = await lerTexto(dir, nome); return t ? JSON.parse(t) : null; }
+  function erroTxt(e) {
+    if (!e) return 'erro';
+    if (e.name === 'NotAllowedError' || e.name === 'SecurityError') return 'sem permissão na pasta';
+    if (e.name === 'NoModificationAllowedError' || e.name === 'InvalidModificationError') return 'arquivo em uso por outro computador';
+    if (e.name === 'QuotaExceededError') return 'disco cheio';
+    if (e.name === 'NotFoundError') return 'pasta ou arquivo não encontrado';
+    return e.message || e.name || 'erro';
+  }
+
+  function renderConexao() {
+    const st = $('#pasta-st');
+    st.className = 'pasta-st' + (conectado ? ' ok' : '');
+    st.querySelector('span').textContent = conectado ? 'Pasta: ' + raiz.name : 'Sem pasta';
+    $('#cfg-pasta').textContent = conectado ? raiz.name : 'nenhuma';
+    $('#conexao').hidden = conectado || vista === 'painel';
+    const tit = $('#cx-tit'), txt = $('#cx-txt'), b = $('#b-conectar'), b2 = $('#b-outra');
+    if (!SUPORTA) {
+      tit.textContent = 'Este navegador não acessa pastas';
+      txt.textContent = 'Abra este arquivo no Microsoft Edge ou no Google Chrome.';
+      b.hidden = true; b2.hidden = true;
+      $('#tv-ativar-txt').textContent = 'Abra este arquivo no Microsoft Edge ou no Google Chrome.';
+      return;
+    }
+    if (handleSalvo) {
+      tit.textContent = `Reconectar à pasta “${handleSalvo.name}”`;
+      txt.textContent = 'O navegador confirma o acesso à pasta a cada abertura. Clique em Reconectar e escolha “Permitir”.';
+      b.textContent = 'Reconectar'; b2.hidden = false;
+    } else {
+      tit.textContent = 'Conecte à pasta compartilhada';
+      txt.textContent = 'Escolha a pasta de rede que a recepção e a TV usam juntas. A fila, as configurações e os vídeos ficam nela.';
+      b.textContent = 'Escolher pasta'; b2.hidden = true;
+    }
+    $('#tv-ativar-txt').textContent = conectado
+      ? 'Clique uma vez neste computador para liberar o som e a voz das chamadas.'
+      : handleSalvo ? `Clique para liberar o som e reconectar à pasta “${handleSalvo.name}”.`
+      : 'Clique para liberar o som e escolher a pasta compartilhada (a mesma da recepção).';
+  }
+
+  // Precisa ser chamada a partir de um clique.
+  async function conectar(nova) {
+    if (!SUPORTA) return false;
+    try {
+      let h = nova ? null : handleSalvo;
+      if (h) {
+        let p = await h.queryPermission({ mode: 'readwrite' });
+        if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' });
+        if (p !== 'granted') { aviso('Sem permissão para a pasta. Clique em Reconectar e escolha “Permitir”.'); return false; }
+      } else {
+        h = await window.showDirectoryPicker({ id: 'painel-senhas', mode: 'readwrite' });
+      }
+      await usarPasta(h);
+      handleSalvo = h;
+      await idbSet('pasta', h);
+      renderConexao();
+      return true;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;
+      aviso('Não foi possível abrir a pasta (' + erroTxt(e) + ').');
+      return false;
+    }
+  }
+
+  async function usarPasta(h) {
+    const dd = await h.getDirectoryHandle('dias', { create: true });
+    const dm = await h.getDirectoryHandle('midia', { create: true });
+    raiz = h; dirDias = dd; dirMidia = dm; conectado = true;
+    ultimoTxtDia = undefined; ultimoTxtCfg = undefined; chaveMidia = null; relDados = null;
+    ultimaLeitura = Date.now();
+    aviso(''); renderConexao();
+    await Promise.allSettled([lerDia(), lerConfig(), listarMidia()]);
+    if (!loopsOn) {
+      loopsOn = true;
+      loopDia();
+      setInterval(() => { if (conectado) lerConfig().catch(() => {}); }, 4000);
+      setInterval(() => { if (conectado) listarMidia().catch(() => {}); }, 20000);
+    }
+    limparAntigos();
+    if (vista === 'relatorio') gerarRelatorio();
+    aoMudar();
+  }
+
+  $('#b-conectar').addEventListener('click', () => conectar(false));
+  $('#b-outra').addEventListener('click', () => conectar(true));
+  $('#b-trocar').addEventListener('click', () => conectar(true));
+
+  /* ---------- dados do dia ---------- */
+  let vista = 'recepcao';
+  let dia = diaStr();
+  const vazio = d => ({ dia: d, ultimo: 0, senhas: [], atual: null, seq: 0 });
+  function normal(d, raw) {
+    const o = Object.assign(vazio(d), raw ? JSON.parse(JSON.stringify(raw)) : {});
+    if (!Array.isArray(o.senhas)) o.senhas = [];
+    o.dia = d;
+    return o;
+  }
+  let dados = vazio(dia);
+  let ultimoTxtDia, dadosConfirmados = false;
+
+  async function lerDia() {
+    if (!conectado) return;
+    const d = diaStr();
+    if (d !== dia) { dia = d; dados = vazio(dia); ultimoTxtDia = undefined; tvPrimed = false; }
+    const txt = await lerTexto(dirDias, dia + '.json');
+    ultimaLeitura = Date.now();
+    if (txt === ultimoTxtDia) return;
+    let obj = null;
+    if (txt) { try { obj = JSON.parse(txt); } catch (e) { return; } }
+    ultimoTxtDia = txt;
+    dados = normal(dia, obj);
+    dadosConfirmados = true;
+    aoMudar();
+  }
+
+  async function loopDia() {
+    try { await lerDia(); } catch (e) { /* conta como falha abaixo */ }
+    const atraso = Date.now() - ultimaLeitura;
+    const alerta = conectado && atraso > 10000 ? `Sem acesso à pasta há ${fmtDur(atraso)}. Verifique a rede.` : '';
+    $('#tv-alerta').textContent = alerta;
+    if (alerta) { aviso(alerta); avisoRede = true; }
+    else if (avisoRede) { aviso(''); avisoRede = false; }
+    setTimeout(loopDia, 1500);
+  }
+
+  // Trava curta num arquivo, para dois computadores não gravarem a fila ao mesmo tempo.
+  async function pegarTrava() {
+    for (let i = 0; i < 30; i++) {
+      let t = null;
+      try { t = await lerJSON(raiz, 'trava.json'); } catch (e) { t = null; }
+      if (t && t.holder && t.holder !== TAB && Date.now() - t.em < 4000) { await sleep(150 + Math.random() * 250); continue; }
+      try { await escreverTexto(raiz, 'trava.json', JSON.stringify({ holder: TAB, em: Date.now() })); }
+      catch (e) { await sleep(150 + Math.random() * 250); continue; }
+      await sleep(120);
+      try { t = await lerJSON(raiz, 'trava.json'); } catch (e) { t = null; }
+      if (t && t.holder === TAB) return;
+      await sleep(100 + Math.random() * 200);
+    }
+    throw new Error('Outro computador está atualizando a fila. Tente de novo.');
+  }
+  async function soltarTrava() {
+    try { await escreverTexto(raiz, 'trava.json', JSON.stringify({ holder: null, em: 0 })); } catch (e) { /* expira sozinha */ }
+  }
+
+  async function mutar(fn) {
+    await pegarTrava();
+    try {
+      const d0 = diaStr();
+      const txt = await lerTexto(dirDias, d0 + '.json');
+      const d = normal(d0, txt ? JSON.parse(txt) : null);
+      const out = fn(d);
+      if (out === false) return false;
+      const novo = JSON.stringify(d);
+      await escreverTexto(dirDias, d0 + '.json', novo);
+      if (d0 === dia) { ultimoTxtDia = novo; dados = d; dadosConfirmados = true; aoMudar(); }
+      return out === undefined ? true : out;
+    } finally { await soltarTrava(); }
+  }
+
+  let ocupado = false;
+  async function acao(fn, msgEl) {
+    if (!conectado) { if (msgEl) setMsg(msgEl, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    if (ocupado) return;
+    ocupado = true; travarBotoes(true);
+    try { return await fn(); }
+    catch (e) {
+      const txt = e instanceof Error && e.name === 'Error' ? e.message : 'Não foi possível salvar na pasta (' + erroTxt(e) + '). Tente de novo.';
+      if (msgEl) setMsg(msgEl, txt, 'erro');
+    } finally { ocupado = false; travarBotoes(false); }
+  }
+  function travarBotoes(on) {
+    if (on) document.querySelectorAll('#v-recepcao button').forEach(b => b.disabled = true);
+    else renderRecepcao();
+  }
+
+  function marcarChamado(d, s) {
+    s.status = 'chamado';
+    if (!s.chamada) s.chamada = Date.now();
+    s.chamadas = (s.chamadas || 0) + 1;
+    d.seq = (d.seq || 0) + 1;
+    d.atual = { n: s.n, nome: s.nome, em: Date.now(), seq: d.seq };
+  }
+
+  const ops = {
+    cadastrar: nome => mutar(d => {
+      d.ultimo = (d.ultimo || 0) + 1;
+      d.senhas.push({ n: d.ultimo, nome, chegada: Date.now(), chamada: null, status: 'aguardando', chamadas: 0 });
+      return d.ultimo;
+    }),
+    proximo: () => mutar(d => {
+      const s = d.senhas.filter(x => x.status === 'aguardando').sort((a, b) => a.chegada - b.chegada)[0];
+      if (!s) return false;
+      marcarChamado(d, s);
+      return s;
+    }),
+    chamar: n => mutar(d => {
+      const s = d.senhas.find(x => x.n === n);
+      if (!s) return false;
+      marcarChamado(d, s);
+      return s;
+    }),
+    ausente: n => mutar(d => {
+      const s = d.senhas.find(x => x.n === n);
+      if (!s) return false;
+      s.status = 'ausente';
+    }),
+    desfazerAusente: n => mutar(d => {
+      const s = d.senhas.find(x => x.n === n);
+      if (!s) return false;
+      s.status = 'chamado';
+    }),
+    remover: n => mutar(d => {
+      const i = d.senhas.findIndex(x => x.n === n);
+      if (i < 0) return false;
+      d.senhas.splice(i, 1);
+      if (d.atual && d.atual.n === n) d.atual = null;
+    }),
+  };
+
+  /* ---------- configurações, programas e mídia ---------- */
+  const CFG_PADRAO = { unidade: 'Sala de Vacina', frase: 'Dirija-se à sala de vacinação', repetir: 1, velocidade: 0.92, somVideos: 0 };
+  let cfg = { ...CFG_PADRAO };
+  let programas = [];   // [{titulo, texto}]
+  let midia = [];       // [{nome, tipo: 'video'|'imagem'}]
+  let progSujo = false, ultimoTxtCfg, chaveMidia = null;
+
+  function aplicarCfg() {
+    $('#topo-unidade').textContent = cfg.unidade;
+    $('#tv-unidade').textContent = cfg.unidade;
+    $('#tv-dir').textContent = cfg.frase;
+    $('#ov-frase').textContent = cfg.frase;
+    if (!$('#cfg-tv').contains(document.activeElement)) {
+      $('#c-unidade').value = cfg.unidade;
+      $('#c-frase').value = cfg.frase;
+      $('#c-repetir').value = String(Number(cfg.repetir) === 2 ? 2 : 1);
+      $('#c-vel').value = String(cfg.velocidade);
+      $('#c-somvid').value = cfg.somVideos ? '1' : '0';
+    }
+    const v = $('#tv-midia video'); if (v) v.muted = !cfg.somVideos;
+  }
+
+  async function lerConfig() {
+    const txt = await lerTexto(raiz, 'config.json');
+    if (txt === ultimoTxtCfg) return;
+    let c = {};
+    if (txt) { try { c = JSON.parse(txt); } catch (e) { return; } }
+    ultimoTxtCfg = txt;
+    cfg = { ...CFG_PADRAO, ...(c.geral || {}) };
+    programas = Array.isArray(c.programas) ? c.programas.filter(p => p && p.titulo) : [];
+    aplicarCfg();
+    if (!progSujo) renderProgEditor();
+    midiaMudou();
+  }
+  async function salvarConfig(parte) {
+    const txt = await lerTexto(raiz, 'config.json');
+    let c = {};
+    if (txt) { try { c = JSON.parse(txt); } catch (e) { c = {}; } }
+    Object.assign(c, parte);
+    const novo = JSON.stringify(c, null, 2);
+    await escreverTexto(raiz, 'config.json', novo);
+    ultimoTxtCfg = novo;
+  }
+
+  async function listarMidia() {
+    if (!dirMidia) return;
+    const out = [];
+    for await (const [nome, h] of dirMidia.entries()) {
+      if (h.kind !== 'file' || nome.endsWith('.crswap')) continue;
+      if (EXT_VID.test(nome)) out.push({ nome, tipo: 'video' });
+      else if (EXT_IMG.test(nome)) out.push({ nome, tipo: 'imagem' });
+    }
+    out.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true }));
+    const chave = out.map(m => m.nome).join('|');
+    if (chave === chaveMidia) return;
+    chaveMidia = chave; midia = out;
+    renderMidiaLista(); midiaMudou();
+  }
+
+  $('#b-cfg').addEventListener('click', async () => {
+    const msg = $('#cfg-msg');
+    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    const novo = {
+      unidade: $('#c-unidade').value.trim() || CFG_PADRAO.unidade,
+      frase: $('#c-frase').value.trim(),
+      repetir: Number($('#c-repetir').value),
+      velocidade: Number($('#c-vel').value),
+      somVideos: Number($('#c-somvid').value),
+    };
+    try {
+      await salvarConfig({ geral: novo });
+      cfg = { ...CFG_PADRAO, ...novo }; aplicarCfg();
+      setMsg(msg, 'Salvo. A TV aplica em poucos segundos.', 'ok');
+    } catch (e) { setMsg(msg, 'Não foi possível salvar (' + erroTxt(e) + ').', 'erro'); }
+  });
+
+  // editor de programas
+  function lerProgEditor() {
+    return [...document.querySelectorAll('#prog-lista .prog')].map(r => ({
+      titulo: r.querySelector('.p-tit').value.trim(),
+      texto: r.querySelector('.p-txt').value.trim(),
+    }));
+  }
+  function renderProgEditor(lista = programas) {
+    const box = $('#prog-lista');
+    box.innerHTML = lista.length ? lista.map((p, i) => `<div class="prog">
+        <input type="text" class="p-tit" id="p-tit-${i}" value="${esc(p.titulo)}" maxlength="60" placeholder="Título (ex.: Novembro Azul)" aria-label="Título do programa ${i + 1}">
+        <textarea class="p-txt" id="p-txt-${i}" rows="2" maxlength="220" placeholder="Texto curto que aparece na TV" aria-label="Texto do programa ${i + 1}">${esc(p.texto)}</textarea>
+        <div class="prog-acoes">
+          <button class="btn sm fant" type="button" data-a="sobe" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Mover para cima">Subir</button>
+          <button class="btn sm fant" type="button" data-a="tira" data-i="${i}">Remover</button>
+        </div></div>`).join('')
+      : '<p class="vazio">Nenhum programa cadastrado. Clique em “Adicionar programa”.</p>';
+  }
+  $('#prog-lista').addEventListener('input', () => { progSujo = true; setMsg($('#prog-msg'), 'Alterações não salvas.', ''); });
+  $('#prog-lista').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-a]'); if (!b) return;
+    const lista = lerProgEditor(), i = Number(b.dataset.i);
+    if (b.dataset.a === 'tira') lista.splice(i, 1);
+    if (b.dataset.a === 'sobe' && i > 0) [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]];
+    progSujo = true; renderProgEditor(lista);
+    setMsg($('#prog-msg'), 'Alterações não salvas.', '');
+  });
+  $('#b-prog-add').addEventListener('click', () => {
+    const lista = lerProgEditor(); lista.push({ titulo: '', texto: '' });
+    progSujo = true; renderProgEditor(lista);
+    const ult = document.querySelectorAll('#prog-lista .p-tit'); ult[ult.length - 1]?.focus();
+  });
+  $('#b-prog-salvar').addEventListener('click', async () => {
+    const msg = $('#prog-msg');
+    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    const itens = lerProgEditor().filter(p => p.titulo);
+    try {
+      await salvarConfig({ programas: itens });
+      progSujo = false; programas = itens; renderProgEditor();
+      setMsg(msg, `${itens.length} ${itens.length === 1 ? 'programa salvo' : 'programas salvos'}. A TV aplica em poucos segundos.`, 'ok');
+      midiaMudou();
+    } catch (e) { setMsg(msg, 'Não foi possível salvar (' + erroTxt(e) + ').', 'erro'); }
+  });
+
+  // vídeos e cartazes
+  function renderMidiaLista() {
+    $('#m-lista').innerHTML = midia.length ? midia.map((m, i) => `<li class="item">
+        <span class="pill tipo">${m.tipo === 'video' ? 'Vídeo' : 'Cartaz'}</span>
+        <span class="info"><b>${esc(m.nome)}</b></span><span></span>
+        <span class="mini"><button class="btn sm fant" type="button" data-i="${i}">Remover</button></span></li>`).join('')
+      : `<li class="vazio">${conectado ? 'Nenhum vídeo ou cartaz na pasta midia.' : 'Conecte à pasta para ver os arquivos.'}</li>`;
+  }
+  $('#m-arquivo').addEventListener('change', async ev => {
+    const files = [...ev.target.files]; ev.target.value = '';
+    const msg = $('#m-msg');
+    if (!conectado) { setMsg(msg, 'Conecte à pasta compartilhada primeiro.', 'erro'); return; }
+    for (const f of files) {
+      const nome = f.name.replace(/[\\/:*?"<>|]/g, '_');
+      if (!EXT_VID.test(nome) && !EXT_IMG.test(nome)) { setMsg(msg, `${nome}: formato não aceito. Use MP4, WebM, PNG, JPG ou WebP.`, 'erro'); continue; }
+      let existe = false;
+      try { await dirMidia.getFileHandle(nome); existe = true; } catch (e) { /* não existe */ }
+      if (existe) { setMsg(msg, `${nome} já está na pasta.`, ''); continue; }
+      setMsg(msg, `Copiando ${nome}…`, '');
+      try {
+        const fh = await dirMidia.getFileHandle(nome, { create: true });
+        const w = await fh.createWritable();
+        await w.write(f); await w.close();
+        setMsg(msg, `${nome} adicionado. A TV passa a exibir em instantes.`, 'ok');
+      } catch (e) {
+        setMsg(msg, `Não foi possível copiar ${nome} (${erroTxt(e)}).`, 'erro');
+        try { await dirMidia.removeEntry(nome); } catch (_) { /* nada */ }
+      }
+    }
+    chaveMidia = null;
+    await listarMidia().catch(() => {});
+  });
+  $('#m-lista').addEventListener('click', async ev => {
+    const b = ev.target.closest('button[data-i]'); if (!b) return;
+    if (!b.dataset.conf) {
+      b.dataset.conf = '1'; b.textContent = 'Confirmar remoção'; b.classList.add('conf');
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.conf; b.textContent = 'Remover'; b.classList.remove('conf'); } }, 4000);
+      return;
+    }
+    const m = midia[Number(b.dataset.i)]; if (!m) return;
+    const msg = $('#m-msg');
+    try {
+      await dirMidia.removeEntry(m.nome);
+      setMsg(msg, `${m.nome} removido.`, '');
+    } catch (e) {
+      setMsg(msg, `Não foi possível remover ${m.nome} (${erroTxt(e)}). Se estiver passando na TV agora, tente de novo em instantes.`, 'erro');
+    }
+    chaveMidia = null;
+    await listarMidia().catch(() => {});
+  });
+
+  /* ---------- recepção ---------- */
+  function renderRecepcao() {
+    if (vista !== 'recepcao') return;
+    const ss = dados.senhas;
+    const agora = Date.now();
+    const fila = ss.filter(s => s.status === 'aguardando').sort((a, b) => a.chegada - b.chegada);
+    const cham = ss.filter(s => s.status !== 'aguardando').sort((a, b) => b.chamada - a.chamada);
+    const a = dados.atual;
+    const sAtual = a ? ss.find(s => s.n === a.n) : null;
+    const off = !conectado;
+
+    $('#cont-fila').textContent = fila.length ? `${fila.length} ${fila.length === 1 ? 'pessoa' : 'pessoas'}` : '';
+    $('#fila').innerHTML = off ? '<li class="vazio">Conecte à pasta para ver a fila.</li>' : fila.length ? fila.map(s => {
+      const w = agora - s.chegada;
+      const cls = w >= 40 * 60000 ? 'crit' : w >= 20 * 60000 ? 'warn' : '';
+      return `<li class="item"><span class="sen">${pad3(s.n)}</span>
+        <span class="info"><b>${esc(s.nome)}</b><small>Chegou às ${fmtHora(s.chegada)}</small></span>
+        <span class="espera ${cls}" title="Tempo esperando">${fmtDur(w)}</span>
+        <span class="mini"><button class="btn sm" type="button" data-a="chamar" data-n="${s.n}">Chamar</button>
+        <button class="btn sm fant" type="button" data-a="remover" data-n="${s.n}">Remover</button></span></li>`;
+    }).join('') : `<li class="vazio">Ninguém aguardando. Cadastre a próxima chegada no campo “Nova chegada”.</li>`;
+
+    $('#cont-cham').textContent = cham.length ? String(cham.length) : '';
+    $('#chamados').innerHTML = cham.length ? cham.map(s => {
+      const naTela = a && a.n === s.n;
+      const pill = s.status === 'ausente' ? '<span class="pill aus">Não compareceu</span>' : naTela ? '<span class="pill tela">No painel</span>' : '<span class="pill ok">Chamado</span>';
+      const bt = s.status === 'ausente'
+        ? `<button class="btn sm fant" type="button" data-a="desfazer" data-n="${s.n}">Desfazer</button>`
+        : naTela ? '' : `<button class="btn sm fant" type="button" data-a="chamar" data-n="${s.n}">Chamar de novo</button>`;
+      return `<li class="item"><span class="sen">${pad3(s.n)}</span>
+        <span class="info"><b>${esc(s.nome)}</b><small>${fmtHora(s.chegada)} → ${fmtHora(s.chamada)} · esperou ${fmtDur(s.chamada - s.chegada)}</small></span>
+        ${pill}<span class="mini">${bt}</span></li>`;
+    }).join('') : (off ? '' : `<li class="vazio">Ninguém foi chamado ainda hoje.</li>`);
+
+    const prox = fila[0];
+    $('#b-proximo').disabled = off || !prox;
+    $('#prox-info').textContent = prox ? `Senha ${pad3(prox.n)} · ${prox.nome}` : 'Fila vazia';
+
+    $('#atual-box').innerHTML = a
+      ? `<span class="sen">${pad3(a.n)}</span><p><b>${esc(a.nome)}</b><small>Chamada às ${fmtHora(a.em)}${sAtual && sAtual.chamadas > 1 ? ` · chamada ${sAtual.chamadas} vezes` : ''}${sAtual && sAtual.status === 'ausente' ? ' · marcada como não compareceu' : ''}</small></p>`
+      : `<p class="vazio">Nenhuma pessoa chamada hoje.</p>`;
+    $('#b-rechamar').disabled = off || !a || !sAtual;
+    $('#b-ausente').disabled = off || !sAtual || sAtual.status !== 'chamado';
+    $('#b-cad').disabled = off;
+
+    const e = estat(ss);
+    $('#resumo-hoje').innerHTML = [
+      ['Chegadas hoje', e.total], ['Aguardando', e.aguardando],
+      ['Espera média', fmtDur(e.media)], ['Não compareceram', e.ausentes],
+    ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+  }
+
+  $('#f-cad').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const inp = $('#nome');
+    const nome = nomeBonito(inp.value);
+    const msg = $('#cad-msg');
+    if (nome.split(' ').length < 2) { setMsg(msg, 'Digite nome e sobrenome.', 'erro'); inp.focus(); return; }
+    const n = await acao(() => ops.cadastrar(nome), msg);
+    if (typeof n === 'number') {
+      setMsg(msg, `Senha ${pad3(n)} gerada para ${nome}.`, 'ok');
+      inp.value = '';
+    }
+    inp.focus();
+  });
+  $('#b-proximo').addEventListener('click', async () => {
+    const s = await acao(() => ops.proximo(), $('#op-msg'));
+    if (s && s.n) setMsg($('#op-msg'), `Senha ${pad3(s.n)} chamada no painel.`, 'ok');
+    else if (s === false) setMsg($('#op-msg'), 'A fila está vazia.', '');
+  });
+  $('#b-rechamar').addEventListener('click', async () => {
+    const a = dados.atual; if (!a) return;
+    const s = await acao(() => ops.chamar(a.n), $('#op-msg'));
+    if (s) setMsg($('#op-msg'), `Senha ${pad3(a.n)} chamada de novo.`, 'ok');
+  });
+  $('#b-ausente').addEventListener('click', async () => {
+    const a = dados.atual; if (!a) return;
+    const r = await acao(() => ops.ausente(a.n), $('#op-msg'));
+    if (r) setMsg($('#op-msg'), `Senha ${pad3(a.n)} marcada como não compareceu.`, '');
+  });
+  function aoClicarLista(ev) {
+    const b = ev.target.closest('button[data-a]'); if (!b) return;
+    const n = Number(b.dataset.n), op = b.dataset.a, msg = $('#op-msg');
+    if (op === 'chamar') acao(() => ops.chamar(n), msg).then(s => s && setMsg(msg, `Senha ${pad3(n)} chamada no painel.`, 'ok'));
+    if (op === 'desfazer') acao(() => ops.desfazerAusente(n), msg);
+    if (op === 'remover') {
+      if (b.dataset.conf) { acao(() => ops.remover(n), msg).then(r => r && setMsg(msg, `Senha ${pad3(n)} removida.`, '')); return; }
+      b.dataset.conf = '1'; b.textContent = 'Confirmar remoção'; b.classList.add('conf');
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.conf; b.textContent = 'Remover'; b.classList.remove('conf'); } }, 4000);
+    }
+  }
+  $('#fila').addEventListener('click', aoClicarLista);
+  $('#chamados').addEventListener('click', aoClicarLista);
+
+  /* ---------- painel TV ---------- */
+  let tvPrimed = false, tvSeq = 0, somAtivo = false, actx = null, vozPt = null, filaSom = Promise.resolve();
+
+  function renderPainel() {
+    if (vista !== 'painel') return;
+    const a = dados.atual;
+    $('#tv-num').textContent = a ? pad3(a.n) : '---';
+    $('#tv-nome').textContent = a ? a.nome : 'Aguardando a primeira chamada';
+    const hist = dados.senhas.filter(s => s.chamada && (!a || s.n !== a.n)).sort((x, y) => y.chamada - x.chamada).slice(0, 4);
+    $('#tv-hist').innerHTML = hist.length
+      ? hist.map(s => `<li><span class="h-num">${pad3(s.n)}</span><span class="h-nome">${esc(s.nome)}</span><span class="h-hora">${fmtHora(s.chamada)}</span></li>`).join('')
+      : '<li class="h-vazio">Nenhuma outra chamada hoje</li>';
+    const ag = dados.senhas.filter(s => s.status === 'aguardando').length;
+    $('#tv-fila').innerHTML = `<b>${ag}</b> ${ag === 1 ? 'pessoa aguardando' : 'pessoas aguardando'}`;
+    checarAnuncio();
+  }
+
+  function checarAnuncio() {
+    const seq = dados.seq || 0, a = dados.atual;
+    // Só anuncia mudanças vistas depois da primeira leitura da pasta.
+    if (!tvPrimed) { tvSeq = seq; if (dadosConfirmados) tvPrimed = true; return; }
+    if (seq !== tvSeq) {
+      tvSeq = seq;
+      if (a) { piscar(); mostrarChamada(a); }
+    }
+  }
+  function piscar() { const el = $('#tv-atual'); el.classList.remove('chamando'); void el.offsetWidth; el.classList.add('chamando'); }
+
+  let ovTok = 0;
+  function mostrarChamada(a) {
+    const tok = ++ovTok;
+    $('#ov-num').textContent = pad3(a.n);
+    $('#ov-nome').textContent = a.nome;
+    $('#ov-frase').textContent = cfg.frase;
+    const ov = $('#tv-chamada');
+    ov.hidden = false; ov.classList.remove('entra'); void ov.offsetWidth; ov.classList.add('entra');
+    const v = $('#tv-midia video');
+    if (v && !v.paused) { v.pause(); v.dataset.retomar = '1'; }
+    Promise.all([anunciar(a), sleep(8000)]).then(() => sleep(1500)).then(() => {
+      if (tok !== ovTok) return;
+      ov.hidden = true;
+      const v2 = $('#tv-midia video');
+      if (v2 && v2.dataset.retomar) { delete v2.dataset.retomar; v2.play().catch(() => {}); }
+    });
+  }
+
+  function prepararVoz() {
+    if (!('speechSynthesis' in window)) return;
+    const pick = () => {
+      const vs = speechSynthesis.getVoices();
+      vozPt = vs.find(v => /^pt[-_]BR/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
+    };
+    pick();
+    speechSynthesis.onvoiceschanged = pick;
+  }
+  async function chime() {
+    if (!actx) return;
+    try { if (actx.state !== 'running') await actx.resume(); } catch (e) { /* segue */ }
+    const t = actx.currentTime + 0.05;
+    [[880, 0], [659.25, 0.4]].forEach(([f, dt]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + dt);
+      g.gain.exponentialRampToValueAtTime(0.6, t + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dt + 1.2);
+      o.connect(g).connect(actx.destination);
+      o.start(t + dt); o.stop(t + dt + 1.3);
+    });
+    await sleep(1500);
+  }
+  function falar(txt) {
+    const vel = Number(cfg.velocidade) || 0.92;
+    if (!('speechSynthesis' in window)) return Promise.resolve();
+    return new Promise(res => {
+      let feito = false;
+      const fim = () => { if (!feito) { feito = true; res(); } };
+      try {
+        const u = new SpeechSynthesisUtterance(txt);
+        if (vozPt) u.voice = vozPt;
+        u.lang = vozPt ? vozPt.lang : 'pt-BR';
+        u.rate = vel;
+        u.onend = fim; u.onerror = fim;
+        speechSynthesis.resume();
+        speechSynthesis.speak(u);
+      } catch (e) { fim(); }
+      setTimeout(fim, 15000);
+    });
+  }
+  function anunciar(a) {
+    if (!somAtivo) return Promise.resolve();
+    const vezes = Number(cfg.repetir) === 2 ? 2 : 1;
+    filaSom = filaSom.then(async () => {
+      await chime();
+      for (let i = 0; i < vezes; i++) {
+        if (i) await sleep(700);
+        await falar(`Senha ${a.n}. ${a.nome}.`);
+      }
+    }).catch(() => {});
+    return filaSom;
+  }
+  function marcarSom() {
+    const b = $('#tv-som');
+    b.textContent = somAtivo ? 'Som ligado · testar' : 'Som desligado · clique para ativar';
+    b.classList.toggle('off', !somAtivo);
+  }
+  async function pedirWakeLock() { try { await navigator.wakeLock?.request('screen'); } catch (e) { /* opcional */ } }
+  document.addEventListener('visibilitychange', () => { if (somAtivo && document.visibilityState === 'visible') pedirWakeLock(); });
+
+  async function ativarSom() {
+    // Som e voz primeiro: precisam nascer do clique.
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (e) { actx = null; }
+    prepararVoz();
+    try {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance('Painel ativado.');
+        u.lang = 'pt-BR';
+        speechSynthesis.speak(u);
+      }
+    } catch (e) { /* segue */ }
+    somAtivo = true;
+    marcarSom();
+    // Depois a pasta (também precisa do clique).
+    if (!conectado) await conectar(false);
+    if (!conectado) { renderConexao(); return; }
+    $('#tv-ativar').hidden = true;
+    pedirWakeLock();
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    chime();
+    const v = $('#tv-midia video'); if (v) v.play().catch(() => {});
+  }
+  $('#b-ativar').addEventListener('click', ativarSom);
+  function testarSom() {
+    if (!somAtivo) { ativarSom(); return; }
+    anunciar({ n: 1, nome: 'Teste de som do painel' });
+  }
+  $('#b-testar').addEventListener('click', testarSom);
+  $('#tv-som').addEventListener('click', testarSom);
+  $('#b-tela').addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  });
+
+  function relogio() {
+    if (vista !== 'painel') return;
+    const d = new Date();
+    $('#tv-hora').textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    $('#tv-data').textContent = d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  // área de mídia: vídeos e cartazes intercalados com programas de saúde
+  let playIdx = -1, playTimer = null, playTok = 0, tocando = false, urlAtual = null;
+  function playlist() {
+    const slides = programas.map(p => ({ tipo: 'programa', ...p }));
+    if (!midia.length) return slides;
+    if (!slides.length) return midia;
+    const out = []; let si = 0;
+    midia.forEach(m => {
+      out.push(m);
+      for (let k = 0; k < 2; k++) { out.push(slides[si % slides.length]); si++; }
+    });
+    return out;
+  }
+  function trocarUrl(nova) { const velha = urlAtual; urlAtual = nova; if (velha) setTimeout(() => URL.revokeObjectURL(velha), 500); }
+  function pararMidia() {
+    clearTimeout(playTimer); playTok++; tocando = false;
+    $('#tv-midia').innerHTML = '';
+    trocarUrl(null);
+  }
+  function midiaMudou() { if (vista === 'painel' && !tocando) proximaMidia(); }
+  async function proximaMidia() {
+    if (vista !== 'painel') return;
+    clearTimeout(playTimer);
+    const tok = ++playTok;
+    const box = $('#tv-midia');
+    const lista = playlist();
+    const seguir = ms => { playTimer = setTimeout(() => { if (tok === playTok) proximaMidia(); }, ms); };
+    if (!lista.length) {
+      tocando = false;
+      box.innerHTML = `<article class="slide vazio"><span class="slide-tag">Programas de saúde</span><h2>${esc(cfg.unidade)}</h2><p>Cadastre programas de saúde, vídeos e cartazes na tela Configurar.</p></article>`;
+      trocarUrl(null);
+      return;
+    }
+    tocando = true;
+    playIdx = (playIdx + 1) % lista.length;
+    const it = lista[playIdx];
+    if (it.tipo === 'video' || it.tipo === 'imagem') {
+      let url;
+      try {
+        const f = await (await dirMidia.getFileHandle(it.nome)).getFile();
+        url = URL.createObjectURL(f);
+      } catch (e) { if (tok === playTok) seguir(2000); return; }
+      if (tok !== playTok) { URL.revokeObjectURL(url); return; }
+      if (it.tipo === 'video') {
+        box.innerHTML = '';
+        const v = document.createElement('video');
+        v.src = url; v.muted = !cfg.somVideos; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+        v.setAttribute('aria-label', it.nome);
+        v.onended = () => { if (tok === playTok) proximaMidia(); };
+        v.onerror = () => { if (tok === playTok) seguir(1000); };
+        box.appendChild(v);
+        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+        seguir(15 * 60000);
+      } else {
+        box.innerHTML = `<img src="${esc(url)}" alt="${esc(it.nome)}">`;
+        seguir(15000);
+      }
+      trocarUrl(url);
+    } else {
+      const slides = lista.filter(x => x.tipo === 'programa');
+      const pos = programas.findIndex(p => p.titulo === it.titulo);
+      box.innerHTML = `<article class="slide"><span class="slide-tag">Programas de saúde</span><h2>${esc(it.titulo)}</h2>${it.texto ? `<p>${esc(it.texto)}</p>` : ''}</article>
+        ${slides.length > 1 ? `<div class="slide-pontos" aria-hidden="true">${programas.map((_, i) => `<i class="${i === pos ? 'on' : ''}"></i>`).join('')}</div>` : ''}`;
+      trocarUrl(null);
+      seguir(14000);
+    }
+  }
+
+  /* ---------- relatório ---------- */
+  let relDados = null;
+  function periodo(dias) {
+    const h = diaStr();
+    $('#r-ate').value = h;
+    $('#r-de').value = addDias(h, -dias);
+    gerarRelatorio();
+  }
+  document.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => periodo(Number(b.dataset.p))));
+  $('#r-de').addEventListener('change', gerarRelatorio);
+  $('#r-ate').addEventListener('change', gerarRelatorio);
+
+  async function gerarRelatorio() {
+    const de = $('#r-de').value, ate = $('#r-ate').value, st = $('#r-status');
+    if (!conectado) { st.textContent = 'Conecte à pasta compartilhada.'; return; }
+    if (!de || !ate || de > ate) { st.textContent = 'Escolha um período válido.'; return; }
+    st.textContent = 'Carregando…';
+    try {
+      const nomes = [];
+      for await (const [nome, h] of dirDias.entries()) {
+        if (h.kind !== 'file' || !RE_DIA.test(nome)) continue;
+        const d = nome.slice(0, 10);
+        if (d >= de && d <= ate) nomes.push(d);
+      }
+      const dias = [];
+      for (const d of nomes) {
+        try { dias.push(normal(d, await lerJSON(dirDias, d + '.json'))); } catch (e) { /* arquivo ilegível: pula */ }
+      }
+      relDados = { de, ate, dias: dias.sort((x, y) => x.dia < y.dia ? -1 : 1) };
+      desenharRel();
+      st.textContent = '';
+    } catch (e) {
+      st.textContent = 'Não foi possível carregar o relatório (' + erroTxt(e) + ').';
+    }
+  }
+
+  function desenharRel() {
+    const { dias } = relDados;
+    const todas = dias.flatMap(d => d.senhas.map(s => ({ ...s, dia: d.dia })));
+    const e = estat(todas);
+    $('#b-exportar').disabled = !todas.length;
+    const pct = e.total ? Math.round(e.ausentes / e.total * 100) : 0;
+    $('#r-tiles').innerHTML = [
+      ['Chegadas', e.total, `${dias.length} ${dias.length === 1 ? 'dia com movimento' : 'dias com movimento'}`, ''],
+      ['Espera média', fmtDur(e.media), `${e.n} pessoas chamadas`, 'dest'],
+      ['Maior espera', fmtDur(e.max), '', ''],
+      ['Menor espera', fmtDur(e.min), '', ''],
+      ['Não compareceram', e.ausentes, `${pct}% das chegadas`, ''],
+    ].map(([k, v, s, c]) => `<div class="tile ${c}"><span>${k}</span><b>${v}</b>${s ? `<small>${s}</small>` : ''}</div>`).join('');
+
+    const porHora = new Map();
+    todas.filter(s => s.chamada).forEach(s => {
+      const h = new Date(s.chegada).getHours();
+      const g = porHora.get(h) || { soma: 0, n: 0 };
+      g.soma += s.chamada - s.chegada; g.n++; porHora.set(h, g);
+    });
+    if (!porHora.size) { $('#r-graf').innerHTML = '<p class="nota">Sem pessoas chamadas no período.</p>'; }
+    else {
+      const hs = [...porHora.keys()];
+      const h0 = Math.min(...hs), h1 = Math.max(...hs);
+      const cols = [];
+      for (let h = h0; h <= h1; h++) { const g = porHora.get(h); cols.push({ h, n: g ? g.n : 0, med: g ? g.soma / g.n : 0 }); }
+      const mx = Math.max(...cols.map(c => c.med)) || 1;
+      $('#r-graf').innerHTML = `<div class="barras">${cols.map(c => `<div class="barra" title="${c.h}h: ${c.n} pessoas, espera média ${fmtDur(c.med)}"><em>${c.n ? Math.round(c.med / 60000) + ' min' : ''}</em><i style="height:${c.n ? Math.max(2, c.med / mx * 100) : 0}%"></i></div>`).join('')}</div>
+        <div class="eixo">${cols.map(c => `<div><b>${String(c.h).padStart(2, '0')}h</b>${c.n} pess.</div>`).join('')}</div>`;
+    }
+
+    $('#r-dias').innerHTML = dias.length ? `<table><thead><tr><th>Data</th><th class="r">Chegadas</th><th class="r">Chamados</th><th class="r">Não compareceram</th><th class="r">Espera média</th><th class="r">Maior espera</th></tr></thead><tbody>
+      ${[...dias].reverse().map(d => { const x = estat(d.senhas); return `<tr><td>${fmtData(d.dia)}</td><td class="r">${x.total}</td><td class="r">${x.chamados}</td><td class="r">${x.ausentes}</td><td class="r">${fmtDur(x.media)}</td><td class="r">${fmtDur(x.max)}</td></tr>`; }).join('')}
+      </tbody></table>` : '<p class="nota">Nenhum registro no período.</p>';
+
+    const det = [...todas].sort((x, y) => y.chegada - x.chegada);
+    const LIM = 500;
+    const sit = s => s.status === 'ausente' ? 'Não compareceu' : s.status === 'chamado' ? 'Chamado' : 'Aguardando';
+    $('#r-det').innerHTML = det.length ? `<table><thead><tr><th>Data</th><th>Senha</th><th>Nome</th><th>Chegada</th><th>Chamada</th><th class="r">Espera</th><th>Situação</th></tr></thead><tbody>
+      ${det.slice(0, LIM).map(s => `<tr><td>${fmtData(s.dia)}</td><td>${pad3(s.n)}</td><td class="nome">${esc(s.nome)}</td><td>${fmtHora(s.chegada)}</td><td>${fmtHora(s.chamada)}</td><td class="r">${s.chamada ? fmtDur(s.chamada - s.chegada) : '—'}</td><td>${sit(s)}</td></tr>`).join('')}
+      </tbody></table>${det.length > LIM ? `<p class="nota">Mostrando ${LIM} de ${det.length} registros. Exporte a planilha para ver todos.</p>` : ''}` : '<p class="nota">Nenhum registro no período.</p>';
+  }
+
+  $('#b-exportar').addEventListener('click', () => {
+    if (!relDados) return;
+    const linhas = [['Data', 'Senha', 'Nome', 'Chegada', 'Chamada', 'Espera (min)', 'Situação']];
+    relDados.dias.forEach(d => [...d.senhas].sort((a, b) => a.chegada - b.chegada).forEach(s => linhas.push([
+      fmtData(d.dia), pad3(s.n), s.nome, fmtHora(s.chegada), s.chamada ? fmtHora(s.chamada) : '',
+      s.chamada ? ((s.chamada - s.chegada) / 60000).toFixed(1).replace('.', ',') : '',
+      s.status === 'ausente' ? 'Não compareceu' : s.status === 'chamado' ? 'Chamado' : 'Aguardando',
+    ])));
+    const csv = '﻿' + linhas.map(l => l.map(c => { const s = String(c); return /[;"\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `tempo-de-espera_${relDados.de}_a_${relDados.ate}.csv`;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    $('#r-status').textContent = 'Planilha baixada.';
+  });
+
+  async function limparAntigos() {
+    try {
+      const corte = addDias(diaStr(), -RETENCAO);
+      const velhos = [];
+      for await (const [nome, h] of dirDias.entries()) {
+        if (h.kind === 'file' && RE_DIA.test(nome) && nome.slice(0, 10) < corte) velhos.push(nome);
+      }
+      for (const n of velhos) await dirDias.removeEntry(n).catch(() => {});
+    } catch (e) { /* tenta de novo na próxima abertura */ }
+  }
+
+  /* ---------- navegação ---------- */
+  const VISTAS = ['recepcao', 'painel', 'relatorio', 'configurar'];
+  function aoMudar() { renderRecepcao(); renderPainel(); }
+  function rota() {
+    const h = location.hash.slice(1);
+    mostrar(VISTAS.includes(h) ? h : 'recepcao');
+  }
+  function mostrar(v) {
+    const antes = vista;
+    vista = v;
+    VISTAS.forEach(x => { $('#v-' + x).hidden = x !== v; });
+    $('#topo').hidden = v === 'painel';
+    document.body.classList.toggle('modo-tv', v === 'painel');
+    document.querySelectorAll('nav a').forEach(a => { if (a.dataset.v === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    renderConexao();
+    if (antes === 'painel' && v !== 'painel') { pararMidia(); $('#tv-chamada').hidden = true; }
+    if (v === 'recepcao') { renderRecepcao(); setTimeout(() => $('#nome').focus(), 0); }
+    if (v === 'painel') {
+      tvPrimed = false; relogio(); renderPainel();
+      $('#tv-ativar').hidden = somAtivo && conectado;
+      if (!tocando) proximaMidia();
+    }
+    if (v === 'relatorio' && conectado && !relDados) gerarRelatorio();
+    if (v === 'configurar') { aplicarCfg(); if (!progSujo) renderProgEditor(); renderMidiaLista(); if (conectado) listarMidia().catch(() => {}); }
+  }
+
+  // estado inicial
+  aplicarCfg();
+  renderProgEditor();
+  renderMidiaLista();
+  $('#r-ate').value = diaStr();
+  $('#r-de').value = addDias(diaStr(), -6);
+  $('#r-de').min = $('#r-ate').min = addDias(diaStr(), -RETENCAO);
+  window.addEventListener('hashchange', rota);
+  rota();
+  setInterval(relogio, 1000);
+  setInterval(() => { if (vista === 'recepcao' && !ocupado) renderRecepcao(); }, 15000);
+
+  (async () => {
+    if (!SUPORTA) { renderConexao(); return; }
+    handleSalvo = await idbGet('pasta');
+    if (handleSalvo) {
+      try {
+        if ((await handleSalvo.queryPermission({ mode: 'readwrite' })) === 'granted') { await usarPasta(handleSalvo); return; }
+      } catch (e) {
+        aviso('A pasta salva não respondeu (' + erroTxt(e) + '). Verifique a rede e clique em Reconectar.');
+      }
+    }
+    renderConexao();
+  })();
+})();
+</script>
+</body>
+</html>
